@@ -4,9 +4,8 @@ import { handleSearch } from './search.js';
 import { handleCrawl } from './crawl.js';
 import { handleSitemap } from './sitemap.js';
 import { handleNews } from './news.js';
-import { handleReasoning } from './reasoning.js';
 import { handleTrending } from './trending.js';
-import { SEARCH_TOOL, CRAWL_TOOL, SITEMAP_TOOL, NEWS_TOOL, REASONING_TOOL, TRENDING_TOOL } from './index.js';
+import { SEARCH_TOOL, CRAWL_TOOL, SITEMAP_TOOL, NEWS_TOOL, TRENDING_TOOL } from './index.js';
 
 /**
  * Dispatch request based on tool name
@@ -30,9 +29,6 @@ export async function handleToolCall(toolName: string, args: unknown, apiKey?: s
 
     case NEWS_TOOL.name:
       return await handleNews(args, apiKey);
-
-    case REASONING_TOOL.name:
-      return await handleReasoning(args, apiKey);
 
     case TRENDING_TOOL.name:
       return await handleTrending(args, apiKey);

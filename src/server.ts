@@ -13,6 +13,7 @@ import { handleToolCall } from "./tools/handlers.js";
 import { log, formatError } from "./utils.js";
 import { handleListResources, handleReadResource } from "./resources.js";
 import { ALL_TOOLS } from "./tools/index.js";
+import { PACKAGE_VERSION } from "./version.js";
 
 /**
  * Create and configure MCP server
@@ -28,7 +29,7 @@ export function createMcpServer(
 
   const server = new Server({
     name: "search1api-server",
-    version: "1.0.0"
+    version: PACKAGE_VERSION
   }, {
     capabilities: {
       resources: {},

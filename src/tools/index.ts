@@ -138,22 +138,6 @@ export const SITEMAP_TOOL: Tool = {
   }
 };
 
-// Reasoning tool definition
-export const REASONING_TOOL: Tool = {
-  name: "reasoning",
-  description: "Deep thinking and complex problem solving",
-  inputSchema: {
-    type: "object",
-    properties: {
-      content: {
-        type: "string",
-        description: "The question or problem that needs deep thinking"
-      }
-    },
-    required: ["content"]
-  }
-};
-
 // Trending tool definition
 export const TRENDING_TOOL: Tool = {
   name: "trending",
@@ -183,6 +167,5 @@ export const ALL_TOOLS = [
   NEWS_TOOL,
   CRAWL_TOOL,
   SITEMAP_TOOL,
-  REASONING_TOOL,
   TRENDING_TOOL
 ];

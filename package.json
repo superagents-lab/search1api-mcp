@@ -1,6 +1,6 @@
 {
   "name": "search1api-mcp",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A Model Context Protocol (MCP) server that provides search and crawl functionality using Search1API",
   "private": false,
   "type": "module",
@@ -11,22 +11,23 @@
     "build"
   ],
   "scripts": {
-    "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\" && node -e \"if (!require('fs').existsSync('.env.example')) { require('fs').writeFileSync('.env.example', '# Search1API Configuration\\n# Get your API key from https://www.search1api.com/?utm_source=mcp\\nSEARCH1API_KEY=your_api_key_here\\n') }\"",
+    "build": "node -e \"require('node:fs').rmSync('build', { recursive: true, force: true })\" && tsc && node -e \"require('node:fs').chmodSync('build/index.js', '755')\"",
+    "test": "npm run build && node --test tests/*.test.mjs",
     "start": "node build/http.js",
-    "prepare": "npm run build",
+    "prepack": "npm run build",
     "watch": "tsc --watch",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js",
     "start:http": "node build/http.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.0",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.0"
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0",
-    "@types/node": "^20.11.24",
-    "typescript": "^5.3.3"
+    "@types/express": "^5.0.6",
+    "@types/node": "^20.19.43",
+    "typescript": "^5.9.3"
   },
   "keywords": [
     "mcp",
@@ -36,11 +37,18 @@
     "google",
     "search1api"
   ],
-  "author": "fatwang2",
+  "author": "Search1API",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fatwang2/search1api-mcp.git"
+    "url": "git+https://github.com/superagents-lab/search1api-mcp.git"
+  },
+  "homepage": "https://github.com/superagents-lab/search1api-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/superagents-lab/search1api-mcp/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "engines": {
     "node": ">=18.0.0"

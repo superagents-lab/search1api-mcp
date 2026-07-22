@@ -4,23 +4,26 @@
 
 The official MCP server for [Search1API](https://www.search1api.com/?utm_source=mcp) — web search, news, crawling, and more in one API.
 
-## Get Your API Key
+## Authentication
 
-1. Register at [Search1API](https://www.search1api.com/?utm_source=mcp)
-2. Get your API key from the dashboard
+- OAuth-aware clients can connect to the Remote MCP URL directly, then sign in and approve access in the browser.
+- Existing integrations can continue to use an API key from the [Search1API dashboard](https://dashboard.search1api.com).
 
 ## Quick Start (Remote MCP)
 
-No installation required. Just configure your MCP client with the remote URL and your API key.
+No installation required. Configure your MCP client with the remote URL. Use OAuth when the client supports it, or provide an API key.
 
 ### Authentication
 
-Two methods are supported — use whichever your client supports:
+Three methods are supported — use whichever your client supports:
 
 | Method | Format |
 |--------|--------|
+| OAuth 2.1 | Connect to `https://mcp.search1api.com/mcp` without a key and follow the client sign-in flow |
 | Authorization Header | `Authorization: Bearer YOUR_SEARCH1API_KEY` |
-| URL Query Parameter | `https://mcp.search1api.com/mcp?apiKey=YOUR_SEARCH1API_KEY` |
+| URL Query Parameter (legacy) | `https://mcp.search1api.com/mcp?apiKey=YOUR_SEARCH1API_KEY` |
+
+Prefer OAuth or the Authorization header. Query-parameter credentials can be exposed in URLs, logs, and shell history.
 
 ### Claude Desktop
 
@@ -97,11 +100,11 @@ claude mcp add --transport http search1api https://mcp.search1api.com/mcp \
 
 ## Agent Skill
 
-The Agent Skill has moved to [search1api-cli](https://github.com/fatwang2/search1api-cli). Install it with:
+The Agent Skill has moved to [search1api-cli](https://github.com/superagents-lab/search1api-cli). Install it with:
 
 ```bash
 npm install -g search1api-cli
-npx skills add fatwang2/search1api-cli
+npx skills add superagents-lab/search1api-cli
 ```
 
 ## Local Mode (stdio)
@@ -164,13 +167,6 @@ Get all related links from a URL.
 |-----------|----------|-------------|
 | `url` | Yes | URL to get sitemap |
 
-### reasoning
-Deep thinking and complex problem solving with DeepSeek R1.
-
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `content` | Yes | The question or problem |
-
 ### trending
 Get trending topics from popular platforms.
 
@@ -181,13 +177,13 @@ Get trending topics from popular platforms.
 
 ## Version History
 
+- v0.3.1: OAuth 2.1 support for Remote MCP; retired reasoning tool removed
 - v0.3.0: Remote MCP support via Streamable HTTP; per-session API key authentication
 - v0.2.0: Fallback `.env` support for LibreChat integration
 - v0.1.8: X (Twitter) and Reddit search services
 - v0.1.7: Trending tool for GitHub and Hacker News
 - v0.1.6: Wikipedia search service
 - v0.1.5: New search parameters and services (arxiv, wechat, bilibili, imdb)
-- v0.1.4: Reasoning tool with DeepSeek R1
 - v0.1.3: News search
 - v0.1.2: Sitemap
 - v0.1.1: Web crawling

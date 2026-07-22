@@ -16,10 +16,14 @@ import { ALL_TOOLS } from "./tools/index.js";
 
 /**
  * Create and configure MCP server
- * @param apiKey Optional per-session API key (used in HTTP mode)
+ * @param credential Optional per-session credential or mutable credential
+ * provider (used in HTTP mode so refreshed OAuth tokens can replace expired
+ * access tokens without changing the MCP session principal)
  * @returns Server instance ready to be connected to a transport
  */
-export function createMcpServer(apiKey?: string): Server {
+export function createMcpServer(
+  credential?: string | (() => string | undefined)
+): Server {
   log("Creating Search1API MCP server");
 
   const server = new Server({
@@ -32,7 +36,7 @@ export function createMcpServer(apiKey?: string): Server {
     }
   });
 
-  setupRequestHandlers(server, apiKey);
+  setupRequestHandlers(server, credential);
 
   return server;
 }
@@ -56,7 +60,10 @@ function handleError(context: string, error: unknown): never {
 /**
  * Set up server request handlers
  */
-function setupRequestHandlers(server: Server, apiKey?: string) {
+function setupRequestHandlers(
+  server: Server,
+  credential?: string | (() => string | undefined)
+) {
   // Handle tool calls
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     try {
@@ -64,7 +71,9 @@ function setupRequestHandlers(server: Server, apiKey?: string) {
       const toolArgs = request.params.arguments;
 
       log(`Tool call received: ${toolName}`);
-      return await handleToolCall(toolName, toolArgs, apiKey);
+      const bearerCredential =
+        typeof credential === "function" ? credential() : credential;
+      return await handleToolCall(toolName, toolArgs, bearerCredential);
     } catch (error) {
       handleError("handling tool call", error);
     }

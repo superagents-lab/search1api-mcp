@@ -10,8 +10,12 @@ process.env.SEARCH1API_KEY = "test-key";
 const { createMcpServer } = await import("../build/server.js");
 const { handleToolCall } = await import("../build/tools/handlers.js");
 const { ALL_TOOLS } = await import("../build/tools/index.js");
+const { RESOURCES } = await import("../build/resources.js");
 const packageJson = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8")
+);
+const marketplaceManifest = JSON.parse(
+  readFileSync(new URL("../lhm.plugin.json", import.meta.url), "utf8")
 );
 
 test("exports only supported public tools", () => {
@@ -53,5 +57,20 @@ test("rejects retired or unknown tools before making an API request", async () =
       error instanceof McpError &&
       error.code === ErrorCode.InvalidParams &&
       error.message.includes("Unknown tool: reasoning")
+  );
+});
+
+test("keeps the LobeHub marketplace manifest aligned with the server", () => {
+  assert.equal(
+    marketplaceManifest.identifier,
+    "fatwang2-search1api-mcp"
+  );
+  assert.equal(marketplaceManifest.version, packageJson.version);
+  assert.deepEqual(marketplaceManifest.tools, ALL_TOOLS);
+  assert.deepEqual(marketplaceManifest.resources, RESOURCES);
+  assert.match(marketplaceManifest.description, /OAuth 2\.1/);
+  assert.doesNotMatch(
+    JSON.stringify(marketplaceManifest),
+    /reasoning|deepseek/i
   );
 });

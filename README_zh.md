@@ -135,7 +135,7 @@ npx skills add superagents-lab/search1api-cli
 | `query` | 是 | - | 搜索关键词 |
 | `max_results` | 否 | 10 | 返回结果数量 |
 | `search_service` | 否 | google | google、bing、duckduckgo、yahoo、x、reddit、github、youtube、arxiv、wechat、bilibili、imdb、wikipedia |
-| `crawl_results` | 否 | 0 | 需要爬取完整内容的结果数量 |
+| `crawl_results` | 否 | 0 | 抓取完整内容的顶部结果数量；每个成功抓取的页面会在搜索请求基础 1 积分之外增加 1 积分 |
 | `include_sites` | 否 | [] | 限定搜索的网站 |
 | `exclude_sites` | 否 | [] | 排除的网站 |
 | `time_range` | 否 | - | day、month、year |
@@ -148,7 +148,7 @@ npx skills add superagents-lab/search1api-cli
 | `query` | 是 | - | 搜索关键词 |
 | `max_results` | 否 | 10 | 返回结果数量 |
 | `search_service` | 否 | bing | google、bing、duckduckgo、yahoo、hackernews |
-| `crawl_results` | 否 | 0 | 需要爬取完整内容的结果数量 |
+| `crawl_results` | 否 | 0 | 抓取完整内容的顶部结果数量；每个成功抓取的页面会在新闻请求基础 1 积分之外增加 1 积分 |
 | `include_sites` | 否 | [] | 限定搜索的网站 |
 | `exclude_sites` | 否 | [] | 排除的网站 |
 | `time_range` | 否 | - | day、month、year |

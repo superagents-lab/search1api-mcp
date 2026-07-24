@@ -24,7 +24,7 @@ export const SEARCH_TOOL: Tool = {
       },
       crawl_results: {
         type: "number",
-        description: "Number of results to crawl for full webpage content, useful when search result summaries are insufficient for complex queries",
+        description: "Number of top results to crawl for full webpage content. Each successfully crawled page adds 1 credit to the base 1-credit search request",
         default: 0
       },
       include_sites: {
@@ -77,7 +77,7 @@ export const NEWS_TOOL: Tool = {
       },
       crawl_results: {
         type: "number",
-        description: "Number of results to crawl for full webpage content, useful when search result summaries are insufficient for complex queries",
+        description: "Number of top results to crawl for full webpage content. Each successfully crawled page adds 1 credit to the base 1-credit news request",
         default: 0
       },
       include_sites: {

@@ -5,9 +5,7 @@
   "author": "Search1API",
   "authorUrl": "https://github.com/superagents-lab",
   "category": "web-search",
-  "cloudEndpoint": "https://mcp.search1api.com/mcp",
   "description": "Official Search1API MCP server for web search, news search, page crawling, sitemap discovery, and trending topics. Use the hosted server with OAuth 2.1 or an API key, or run it locally with npm.",
-  "homepage": "https://github.com/superagents-lab/search1api-mcp",
   "localizations": [
     {
       "description": "Search1API 官方 MCP 服务，提供网页搜索、新闻检索、网页抓取、站点地图和热门话题能力。支持通过 OAuth 2.1 或 API Key 使用托管服务，也可通过 npm 本地运行。",
@@ -79,7 +77,7 @@
           },
           "crawl_results": {
             "type": "number",
-            "description": "Number of results to crawl for full webpage content, useful when search result summaries are insufficient for complex queries",
+            "description": "Number of top results to crawl for full webpage content. Each successfully crawled page adds 1 credit to the base 1-credit search request",
             "default": 0
           },
           "include_sites": {
@@ -142,7 +140,7 @@
           },
           "crawl_results": {
             "type": "number",
-            "description": "Number of results to crawl for full webpage content, useful when search result summaries are insufficient for complex queries",
+            "description": "Number of top results to crawl for full webpage content. Each successfully crawled page adds 1 credit to the base 1-credit news request",
             "default": 0
           },
           "include_sites": {

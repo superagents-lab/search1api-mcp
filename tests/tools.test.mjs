@@ -66,10 +66,6 @@ test("keeps the LobeHub marketplace manifest aligned with the server", () => {
     "fatwang2-search1api-mcp"
   );
   assert.equal(marketplaceManifest.version, packageJson.version);
-  assert.equal(
-    marketplaceManifest.cloudEndpoint,
-    "https://mcp.search1api.com/mcp"
-  );
   assert.deepEqual(marketplaceManifest.tools, ALL_TOOLS);
   assert.deepEqual(marketplaceManifest.resources, RESOURCES);
   assert.match(marketplaceManifest.description, /OAuth 2\.1/);

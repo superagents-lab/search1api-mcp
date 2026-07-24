@@ -135,7 +135,7 @@ Search the web using Search1API.
 | `query` | Yes | - | Search query |
 | `max_results` | No | 10 | Number of results |
 | `search_service` | No | google | google, bing, duckduckgo, yahoo, x, reddit, github, youtube, arxiv, wechat, bilibili, imdb, wikipedia |
-| `crawl_results` | No | 0 | Number of results to crawl for full content |
+| `crawl_results` | No | 0 | Number of top results to crawl for full content; each successful crawl adds 1 credit to the base 1-credit search request |
 | `include_sites` | No | [] | Sites to include |
 | `exclude_sites` | No | [] | Sites to exclude |
 | `time_range` | No | - | day, month, year |
@@ -148,7 +148,7 @@ Search for news articles.
 | `query` | Yes | - | Search query |
 | `max_results` | No | 10 | Number of results |
 | `search_service` | No | bing | google, bing, duckduckgo, yahoo, hackernews |
-| `crawl_results` | No | 0 | Number of results to crawl for full content |
+| `crawl_results` | No | 0 | Number of top results to crawl for full content; each successful crawl adds 1 credit to the base 1-credit news request |
 | `include_sites` | No | [] | Sites to include |
 | `exclude_sites` | No | [] | Sites to exclude |
 | `time_range` | No | - | day, month, year |

@@ -24,11 +24,24 @@ export async function handleNews(args: unknown, apiKey?: string) {
       apiKey
     );
     
+    const results = response.results.map((result) => ({
+      id: result.link,
+      title: result.title,
+      url: result.link,
+      text: result.content || result.snippet,
+      metadata: {
+        snippet: result.snippet,
+        ...(result.content ? { has_full_content: true } : {}),
+      },
+    }));
+    const structuredContent = { results };
+
     return {
+      structuredContent,
       content: [{
         type: "text",
         mimeType: "application/json",
-        text: JSON.stringify(response.results, null, 2)
+        text: JSON.stringify(structuredContent)
       }]
     };
   } catch (error) {

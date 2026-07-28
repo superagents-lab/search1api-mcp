@@ -22,11 +22,14 @@ export async function handleSitemap(args: unknown, apiKey?: string) {
       apiKey
     );
     
+    const structuredContent = { links: response.links };
+
     return {
+      structuredContent,
       content: [{
         type: "text",
         mimeType: "application/json",
-        text: JSON.stringify(response.links, null, 2)
+        text: JSON.stringify(structuredContent)
       }]
     };
   } catch (error) {

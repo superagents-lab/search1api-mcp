@@ -124,6 +124,19 @@ export interface CrawlArgs {
   url: string;
 }
 
+export interface FetchArgs {
+  id: string;
+}
+
+export function isValidFetchArgs(args: unknown): args is FetchArgs {
+  if (typeof args !== "object" || args === null) {
+    return false;
+  }
+
+  const { id } = args as FetchArgs;
+  return typeof id === "string" && id.trim().length > 0;
+}
+
 export function isValidCrawlArgs(args: unknown): args is CrawlArgs {
   if (typeof args !== 'object' || args === null) {
     return false;

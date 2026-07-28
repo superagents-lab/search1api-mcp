@@ -21,7 +21,7 @@ const marketplaceManifest = JSON.parse(
 test("exports only supported public tools", () => {
   assert.deepEqual(
     ALL_TOOLS.map((tool) => tool.name),
-    ["search", "news", "crawl", "sitemap", "trending"]
+    ["search", "fetch", "news", "crawl", "sitemap", "trending"]
   );
   assert.equal(
     existsSync(new URL("../build/tools/reasoning.js", import.meta.url)),
@@ -46,8 +46,39 @@ test("lists the supported tools over MCP", async (context) => {
   assert.equal(client.getServerVersion()?.version, packageJson.version);
   assert.deepEqual(
     result.tools.map((tool) => tool.name),
-    ["search", "news", "crawl", "sitemap", "trending"]
+    ["search", "fetch", "news", "crawl", "sitemap", "trending"]
   );
+  assert.equal(result.tools[0].title, "Search the web");
+  assert.deepEqual(result.tools[0]._meta.securitySchemes, [
+    { type: "oauth2", scopes: ["openid", "offline_access"] },
+  ]);
+  assert.deepEqual(result.tools[0].outputSchema.required, ["results"]);
+});
+
+test("advertises directory-ready metadata and search/fetch compatibility", () => {
+  for (const tool of ALL_TOOLS) {
+    assert.equal(typeof tool.title, "string");
+    assert.equal(tool.annotations?.readOnlyHint, true);
+    assert.equal(tool.annotations?.destructiveHint, false);
+    assert.equal(tool.annotations?.openWorldHint, true);
+    assert.deepEqual(tool.securitySchemes, [
+      { type: "oauth2", scopes: ["openid", "offline_access"] },
+    ]);
+    assert.deepEqual(tool._meta.securitySchemes, tool.securitySchemes);
+    assert.equal(tool.outputSchema?.type, "object");
+  }
+
+  const search = ALL_TOOLS.find((tool) => tool.name === "search");
+  const fetch = ALL_TOOLS.find((tool) => tool.name === "fetch");
+  assert.deepEqual(search.inputSchema.required, ["query"]);
+  assert.deepEqual(search.outputSchema.required, ["results"]);
+  assert.deepEqual(fetch.inputSchema.required, ["id"]);
+  assert.deepEqual(fetch.outputSchema.required, [
+    "id",
+    "title",
+    "text",
+    "url",
+  ]);
 });
 
 test("rejects retired or unknown tools before making an API request", async () => {

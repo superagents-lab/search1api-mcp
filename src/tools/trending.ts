@@ -22,11 +22,14 @@ export async function handleTrending(args: unknown, apiKey?: string) {
       apiKey
     );
 
+    const structuredContent = { results: response.results };
+
     return {
+      structuredContent,
       content: [{
         type: "text",
         mimeType: "application/json",
-        text: JSON.stringify(response.results, null, 2)
+        text: JSON.stringify(structuredContent)
       }]
     };
   } catch (error) {
@@ -39,4 +42,4 @@ export async function handleTrending(args: unknown, apiKey?: string) {
       isError: true
     };
   }
-} 
+}

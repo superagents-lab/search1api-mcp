@@ -2,7 +2,7 @@
 
 [中文文档](./README_zh.md)
 
-The official MCP server for [Search1API](https://www.search1api.com/?utm_source=mcp) — web search, news, crawling, and more in one API.
+The official MCP server for [Search1API](https://www.search1api.com/?utm_source=mcp) — web search, news, page retrieval, sitemap discovery, and trending topics in one API.
 
 ## Authentication
 
@@ -128,7 +128,9 @@ If you prefer to run the server locally, use npx — no cloning required:
 ## Tools
 
 ### search
-Search the web using Search1API.
+Search the web using Search1API. Results use the standard citable
+`id`/`title`/`url` shape expected by ChatGPT deep research and company
+knowledge.
 
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
@@ -139,6 +141,13 @@ Search the web using Search1API.
 | `include_sites` | No | [] | Sites to include |
 | `exclude_sites` | No | [] | Sites to exclude |
 | `time_range` | No | - | day, month, year |
+
+### fetch
+Retrieve the full readable contents of a result returned by `search`.
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `id` | Yes | Result ID returned by `search` (the canonical page URL) |
 
 ### news
 Search for news articles.
@@ -177,6 +186,7 @@ Get trending topics from popular platforms.
 
 ## Version History
 
+- v0.4.0: Standard `search`/`fetch` compatibility, structured output schemas, OAuth security schemes, safety annotations, and Official MCP Registry metadata
 - v0.3.1: OAuth 2.1 support for Remote MCP; retired reasoning tool removed
 - v0.3.0: Remote MCP support via Streamable HTTP; per-session API key authentication
 - v0.2.0: Fallback `.env` support for LibreChat integration

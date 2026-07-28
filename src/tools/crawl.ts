@@ -29,11 +29,23 @@ export async function handleCrawl(args: unknown, apiKey?: string) {
     const endTime = Date.now();
     log(`Crawl completed successfully in ${endTime - startTime}ms`);
 
+    const result = {
+      id: response.results.link || url,
+      title: response.results.title,
+      url: response.results.link || url,
+      text: response.results.content,
+      metadata: {
+        source: "search1api",
+      },
+    };
+    const structuredContent = { result };
+
     return {
+      structuredContent,
       content: [{
         type: "text",
         mimeType: "application/json",
-        text: JSON.stringify(response.results, null, 2)
+        text: JSON.stringify(structuredContent)
       }]
     };
   } catch (error) {

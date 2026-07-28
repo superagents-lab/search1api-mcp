@@ -1,0 +1,36 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.superagents-lab/search1api",
+  "title": "Search1API",
+  "description": "Web search, news, page retrieval, sitemaps, and trending topics through Search1API.",
+  "repository": {
+    "url": "https://github.com/superagents-lab/search1api-mcp",
+    "source": "github"
+  },
+  "version": "0.4.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.search1api.com/mcp"
+    }
+  ],
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "search1api-mcp",
+      "version": "0.4.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "SEARCH1API_KEY",
+          "description": "Search1API API key for local stdio mode",
+          "isRequired": true,
+          "isSecret": true,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

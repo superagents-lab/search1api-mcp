@@ -128,7 +128,8 @@ npx skills add superagents-lab/search1api-cli
 ## 工具
 
 ### search
-搜索网页。
+搜索网页。结果采用 ChatGPT 深度研究与 Company Knowledge 兼容的
+`id`/`title`/`url` 可引用结构。
 
 | 参数 | 必需 | 默认值 | 说明 |
 |------|------|--------|------|
@@ -139,6 +140,13 @@ npx skills add superagents-lab/search1api-cli
 | `include_sites` | 否 | [] | 限定搜索的网站 |
 | `exclude_sites` | 否 | [] | 排除的网站 |
 | `time_range` | 否 | - | day、month、year |
+
+### fetch
+获取 `search` 返回结果的完整可读正文。
+
+| 参数 | 必需 | 说明 |
+|------|------|------|
+| `id` | 是 | `search` 返回的结果 ID（网页规范 URL） |
 
 ### news
 搜索新闻。
@@ -177,6 +185,7 @@ npx skills add superagents-lab/search1api-cli
 
 ## 版本历史
 
+- v0.4.0: 标准 `search`/`fetch` 兼容、结构化输出 schema、OAuth 安全声明、只读安全注解和官方 MCP Registry 元数据
 - v0.3.1: Remote MCP 支持 OAuth 2.1；移除已下线的 reasoning 工具
 - v0.3.0: 新增 Remote MCP 支持（Streamable HTTP），per-session API 密钥认证
 - v0.2.0: LibreChat 集成的 `.env` 回退支持

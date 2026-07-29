@@ -133,9 +133,9 @@ by default.
 ## Tools
 
 ### search
-Search the web using Search1API. Results use the standard citable
-`id`/`title`/`url` shape expected by ChatGPT deep research and company
-knowledge.
+Search the web using Search1API. Results include a citable
+`id`/`title`/`url` structure. Pass a result URL to `crawl` when you need the
+full page.
 
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
@@ -146,13 +146,6 @@ knowledge.
 | `include_sites` | No | [] | Sites to include |
 | `exclude_sites` | No | [] | Sites to exclude |
 | `time_range` | No | - | day, month, year |
-
-### fetch
-Retrieve the full readable contents of a result returned by `search`.
-
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `id` | Yes | Result ID returned by `search` (the canonical page URL) |
 
 ### news
 Search for news articles.
@@ -191,8 +184,9 @@ Get trending topics from popular platforms.
 
 ## Version History
 
+- v0.5.1: Duplicate `fetch` tool removed; pass search result URLs directly to `crawl`
 - v0.5.0: MCP 2026-07-28 support with automatic protocol negotiation; stateless compatibility for 2025-era HTTP clients; request-level authentication
-- v0.4.0: Standard `search`/`fetch` compatibility, structured output schemas, OAuth security schemes, safety annotations, and Official MCP Registry metadata
+- v0.4.0: Initial `search`/`fetch` compatibility, structured output schemas, OAuth security schemes, safety annotations, and Official MCP Registry metadata
 - v0.3.1: OAuth 2.1 support for Remote MCP; retired reasoning tool removed
 - v0.3.0: Remote MCP support via Streamable HTTP; per-session API key authentication
 - v0.2.0: Fallback `.env` support for LibreChat integration

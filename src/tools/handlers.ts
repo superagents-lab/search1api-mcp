@@ -5,14 +5,12 @@ import {
 } from "@modelcontextprotocol/server";
 import { log } from "../utils.js";
 import { handleSearch } from "./search.js";
-import { handleFetch } from "./fetch.js";
 import { handleCrawl } from "./crawl.js";
 import { handleSitemap } from "./sitemap.js";
 import { handleNews } from "./news.js";
 import { handleTrending } from "./trending.js";
 import {
   SEARCH_TOOL,
-  FETCH_TOOL,
   CRAWL_TOOL,
   SITEMAP_TOOL,
   NEWS_TOOL,
@@ -36,9 +34,6 @@ export async function handleToolCall(
   switch (toolName) {
     case SEARCH_TOOL.name:
       return await handleSearch(args, apiKey);
-
-    case FETCH_TOOL.name:
-      return await handleFetch(args, apiKey);
 
     case CRAWL_TOOL.name:
       return await handleCrawl(args, apiKey);

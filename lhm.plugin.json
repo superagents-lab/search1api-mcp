@@ -1,7 +1,7 @@
 {
   "identifier": "fatwang2-search1api-mcp",
   "name": "Search1API MCP Server",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "author": "Search1API",
   "authorUrl": "https://github.com/superagents-lab",
   "category": "web-search",
@@ -43,7 +43,7 @@
     {
       "name": "search",
       "title": "Search the web",
-      "description": "Search the live public web when the user needs current information, sources, or research. Returns citable results with id, title, URL, and text. Pass a result id to fetch to retrieve the full page.",
+      "description": "Search the live public web when the user needs current information, sources, or research. Returns citable results with id, title, URL, and text. Pass a result URL to crawl to retrieve the full page.",
       "securitySchemes": [
         {
           "type": "oauth2",
@@ -180,76 +180,6 @@
         },
         "required": [
           "results"
-        ]
-      }
-    },
-    {
-      "name": "fetch",
-      "title": "Fetch a search result",
-      "description": "Retrieve the full readable contents of a result returned by search. Pass the result id, which is the canonical page URL. Returns id, title, full text, URL, and metadata.",
-      "securitySchemes": [
-        {
-          "type": "oauth2",
-          "scopes": [
-            "openid",
-            "offline_access"
-          ]
-        }
-      ],
-      "_meta": {
-        "securitySchemes": [
-          {
-            "type": "oauth2",
-            "scopes": [
-              "openid",
-              "offline_access"
-            ]
-          }
-        ]
-      },
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "openWorldHint": true
-      },
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Result id returned by search; for web results this is the canonical URL"
-          }
-        },
-        "required": [
-          "id"
-        ]
-      },
-      "outputSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "text": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string",
-            "format": "uri"
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": true
-          }
-        },
-        "required": [
-          "id",
-          "title",
-          "text",
-          "url"
         ]
       }
     },
@@ -391,7 +321,7 @@
     {
       "name": "crawl",
       "title": "Read a web page",
-      "description": "Extract the readable title and full text from a specific public URL supplied by the user. Use fetch instead when following a result returned by search.",
+      "description": "Extract the readable title and full text from a public URL supplied by the user or returned by search.",
       "securitySchemes": [
         {
           "type": "oauth2",

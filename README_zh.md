@@ -182,9 +182,9 @@ npx skills add superagents-lab/search1api-cli
 
 ## 版本历史
 
-- v0.5.1: 移除与 `crawl` 重复的 `fetch` 工具；搜索结果 URL 直接交给 `crawl`
+- v0.5.1: 同步文档、LobeHub manifest 与 MCP Registry 元数据；传输域名提供 `robots.txt`
 - v0.5.0: 支持 MCP 2026-07-28 与自动协议协商；通过无状态回退兼容 2025 版本 HTTP 客户端；改为请求级认证
-- v0.4.0: 初始 `search`/`fetch` 兼容、结构化输出 schema、OAuth 安全声明、只读安全注解和官方 MCP Registry 元数据
+- v0.4.0: 结构化输出 schema、OAuth 安全声明、只读安全注解和官方 MCP Registry 元数据
 - v0.3.1: Remote MCP 支持 OAuth 2.1；移除已下线的 reasoning 工具
 - v0.3.0: 新增 Remote MCP 支持（Streamable HTTP），per-session API 密钥认证
 - v0.2.0: LibreChat 集成的 `.env` 回退支持

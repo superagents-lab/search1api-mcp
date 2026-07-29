@@ -30,7 +30,7 @@ if (!API_KEY) {
 
 // Final check
 if (!API_KEY) {
-  log('SEARCH1API_KEY not found. Stdio mode requires it; HTTP mode uses per-session keys.');
+  log('SEARCH1API_KEY not found. Stdio mode requires it; HTTP mode uses per-request credentials.');
 } else {
   log('API key located successfully.');
 }

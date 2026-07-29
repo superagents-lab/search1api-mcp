@@ -109,7 +109,7 @@ npx skills add superagents-lab/search1api-cli
 
 ## Local Mode (stdio)
 
-If you prefer to run the server locally, use npx — no cloning required:
+If you prefer to run the server locally, use Node.js 20 or newer with npx — no cloning required:
 
 ```json
 {
@@ -124,6 +124,11 @@ If you prefer to run the server locally, use npx — no cloning required:
   }
 }
 ```
+
+For self-hosted HTTP deployments behind a proxy, add any internal hostnames
+that reach the Node.js process to the comma-separated `MCP_ALLOWED_HOSTS`
+environment variable. `mcp.search1api.com` and localhost addresses are allowed
+by default.
 
 ## Tools
 
@@ -186,6 +191,7 @@ Get trending topics from popular platforms.
 
 ## Version History
 
+- v0.5.0: MCP 2026-07-28 support with automatic protocol negotiation; stateless compatibility for 2025-era HTTP clients; request-level authentication
 - v0.4.0: Standard `search`/`fetch` compatibility, structured output schemas, OAuth security schemes, safety annotations, and Official MCP Registry metadata
 - v0.3.1: OAuth 2.1 support for Remote MCP; retired reasoning tool removed
 - v0.3.0: Remote MCP support via Streamable HTTP; per-session API key authentication

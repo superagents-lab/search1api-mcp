@@ -5,13 +5,13 @@ import { log } from './utils.js';
  * Unified API request function
  * @param endpoint API endpoint
  * @param data Request data
- * @param apiKey Optional per-session API key (falls back to global API_KEY)
+ * @param apiKey Optional request credential (falls back to global API_KEY)
  * @returns API response
  */
 export async function makeRequest<T>(endpoint: string, data: any, apiKey?: string): Promise<T> {
   const key = apiKey || API_KEY;
   if (!key) {
-    throw new Error("API key is required. Provide SEARCH1API_KEY or pass apiKey per-session.");
+    throw new Error("API key is required. Provide SEARCH1API_KEY or pass apiKey explicitly.");
   }
 
   const startTime = Date.now();

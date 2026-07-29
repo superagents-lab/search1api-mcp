@@ -1,6 +1,5 @@
-import { McpError, ErrorCode, Resource } from "@modelcontextprotocol/sdk/types.js";
-import { log } from './utils.js';
-import { API_CONFIG } from './config.js';
+import { ResourceNotFoundError, type Resource } from "@modelcontextprotocol/server";
+import { log } from "./utils.js";
 
 /**
  * Define the default search query result resource
@@ -31,15 +30,12 @@ export function handleListResources(): Resource[] {
  */
 export function handleReadResource(resourceUri: string): Resource {
   log(`Handling read resource request for ${resourceUri}`);
-  
+
   const resource = RESOURCES.find((r) => r.uri === resourceUri);
-  
+
   if (!resource) {
-    throw new McpError(
-      ErrorCode.InvalidRequest,
-      `Resource not found: ${resourceUri}`
-    );
+    throw new ResourceNotFoundError(resourceUri);
   }
-  
+
   return resource;
 }

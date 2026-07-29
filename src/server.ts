@@ -1,114 +1,104 @@
 import {
-  Server
-} from "@modelcontextprotocol/sdk/server/index.js";
-import {
-  McpError,
-  ErrorCode,
-  CallToolRequestSchema,
-  ListResourcesRequestSchema,
-  ReadResourceRequestSchema,
-  ListToolsRequestSchema
-} from "@modelcontextprotocol/sdk/types.js";
+  INTERNAL_ERROR,
+  McpServer,
+  ProtocolError,
+  fromJsonSchema,
+  type JsonSchemaType,
+} from "@modelcontextprotocol/server";
+import { handleReadResource, RESOURCES } from "./resources.js";
 import { handleToolCall } from "./tools/handlers.js";
-import { log, formatError } from "./utils.js";
-import { handleListResources, handleReadResource } from "./resources.js";
 import { ALL_TOOLS } from "./tools/index.js";
+import { formatError, log } from "./utils.js";
 import { PACKAGE_VERSION } from "./version.js";
 
+type CredentialProvider = string | (() => string | undefined);
+
 /**
- * Create and configure MCP server
- * @param credential Optional per-session credential or mutable credential
- * provider (used in HTTP mode so refreshed OAuth tokens can replace expired
- * access tokens without changing the MCP session principal)
- * @returns Server instance ready to be connected to a transport
+ * Create one transport-neutral MCP server instance.
+ *
+ * The v2 serving entries call this factory once per modern HTTP exchange,
+ * once per stateless legacy HTTP request, or once per stdio connection.
  */
-export function createMcpServer(
-  credential?: string | (() => string | undefined)
-): Server {
+export function createMcpServer(credential?: CredentialProvider): McpServer {
   log("Creating Search1API MCP server");
 
-  const server = new Server({
+  const server = new McpServer({
     name: "search1api-server",
-    version: PACKAGE_VERSION
-  }, {
-    capabilities: {
-      resources: {},
-      tools: {}
-    }
+    version: PACKAGE_VERSION,
   });
 
-  setupRequestHandlers(server, credential);
+  for (const tool of ALL_TOOLS) {
+    const inputSchema = fromJsonSchema<Record<string, unknown>>(
+      tool.inputSchema as JsonSchemaType
+    );
+    const outputSchema = tool.outputSchema
+      ? fromJsonSchema<Record<string, unknown>>(
+          tool.outputSchema as JsonSchemaType
+        )
+      : undefined;
+
+    server.registerTool(
+      tool.name,
+      {
+        title: tool.title,
+        description: tool.description,
+        inputSchema,
+        ...(outputSchema ? { outputSchema } : {}),
+        annotations: tool.annotations,
+        _meta: tool._meta,
+      },
+      async (args) => {
+        try {
+          const bearerCredential =
+            typeof credential === "function" ? credential() : credential;
+          log(`Tool call received: ${tool.name}`);
+          return await handleToolCall(tool.name, args, bearerCredential);
+        } catch (error) {
+          throw normalizeProtocolError(`handling tool call ${tool.name}`, error);
+        }
+      }
+    );
+  }
+
+  for (const resource of RESOURCES) {
+    server.registerResource(
+      resource.name,
+      resource.uri,
+      {
+        description: resource.description,
+        mimeType: resource.mimeType,
+      },
+      async (uri) => {
+        try {
+          const result = handleReadResource(uri.href);
+          return {
+            contents: [
+              {
+                uri: uri.href,
+                mimeType: result.mimeType || "application/json",
+                text: JSON.stringify(result),
+              },
+            ],
+          };
+        } catch (error) {
+          throw normalizeProtocolError("reading resource", error);
+        }
+      }
+    );
+  }
 
   return server;
 }
 
-/**
- * Helper function to handle errors uniformly
- */
-function handleError(context: string, error: unknown): never {
+function normalizeProtocolError(context: string, error: unknown): ProtocolError {
   log(`Error ${context}:`, error);
 
-  if (error instanceof McpError) {
-    throw error;
+  if (error instanceof ProtocolError) {
+    return error;
   }
 
-  throw new McpError(
-    ErrorCode.InternalError,
+  return new ProtocolError(
+    INTERNAL_ERROR,
     `${context}: ${formatError(error)}`
   );
-}
-
-/**
- * Set up server request handlers
- */
-function setupRequestHandlers(
-  server: Server,
-  credential?: string | (() => string | undefined)
-) {
-  // Handle tool calls
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    try {
-      const toolName = request.params.name;
-      const toolArgs = request.params.arguments;
-
-      log(`Tool call received: ${toolName}`);
-      const bearerCredential =
-        typeof credential === "function" ? credential() : credential;
-      return await handleToolCall(toolName, toolArgs, bearerCredential);
-    } catch (error) {
-      handleError("handling tool call", error);
-    }
-  });
-
-  // Handle resource listing
-  server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    try {
-      return { resources: handleListResources() };
-    } catch (error) {
-      handleError("listing resources", error);
-    }
-  });
-
-  // Handle resource reading
-  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    try {
-      const resourceUri = request.params.uri;
-      const resource = handleReadResource(resourceUri);
-
-      return {
-        contents: [{
-          uri: resourceUri,
-          mimeType: resource.mimeType || "application/json",
-          text: JSON.stringify(resource)
-        }]
-      };
-    } catch (error) {
-      handleError("reading resource", error);
-    }
-  });
-
-  // Handle tool listing
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools: ALL_TOOLS };
-  });
 }

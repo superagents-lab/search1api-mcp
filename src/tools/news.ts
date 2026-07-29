@@ -2,17 +2,21 @@ import { NewsArgs, NewsResponse, isValidNewsArgs } from '../types.js';
 import { makeRequest } from '../api.js';
 import { formatError, log } from '../utils.js';
 import { API_CONFIG } from '../config.js';
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import {
+  INVALID_PARAMS,
+  ProtocolError,
+  type CallToolResult,
+} from "@modelcontextprotocol/server";
 
 /**
  * Implementation of the news search tool
  */
-export async function handleNews(args: unknown, apiKey?: string) {
+export async function handleNews(
+  args: unknown,
+  apiKey?: string
+): Promise<CallToolResult> {
   if (!isValidNewsArgs(args)) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      "Invalid news search arguments"
-    );
+    throw new ProtocolError(INVALID_PARAMS, "Invalid news search arguments");
   }
 
   log("Processing news search with query:", (args as NewsArgs).query);
@@ -40,7 +44,6 @@ export async function handleNews(args: unknown, apiKey?: string) {
       structuredContent,
       content: [{
         type: "text",
-        mimeType: "application/json",
         text: JSON.stringify(structuredContent)
       }]
     };
@@ -49,7 +52,6 @@ export async function handleNews(args: unknown, apiKey?: string) {
     return {
       content: [{
         type: "text",
-        mimeType: "text/plain",
         text: `News API error: ${formatError(error)}`
       }],
       isError: true

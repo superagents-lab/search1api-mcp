@@ -1,4 +1,8 @@
-import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
+import {
+  INVALID_PARAMS,
+  ProtocolError,
+  type CallToolResult,
+} from "@modelcontextprotocol/server";
 import { makeRequest } from "../api.js";
 import { API_CONFIG } from "../config.js";
 import {
@@ -12,9 +16,12 @@ import { formatError, log } from "../utils.js";
  * ChatGPT-compatible fetch implementation. Search result IDs are canonical
  * URLs, so fetch can pass the ID directly to the crawl endpoint.
  */
-export async function handleFetch(args: unknown, apiKey?: string) {
+export async function handleFetch(
+  args: unknown,
+  apiKey?: string
+): Promise<CallToolResult> {
   if (!isValidFetchArgs(args)) {
-    throw new McpError(ErrorCode.InvalidParams, "Invalid fetch arguments");
+    throw new ProtocolError(INVALID_PARAMS, "Invalid fetch arguments");
   }
 
   const { id } = args as FetchArgs;
@@ -41,7 +48,6 @@ export async function handleFetch(args: unknown, apiKey?: string) {
       content: [
         {
           type: "text",
-          mimeType: "application/json",
           text: JSON.stringify(result),
         },
       ],
@@ -52,7 +58,6 @@ export async function handleFetch(args: unknown, apiKey?: string) {
       content: [
         {
           type: "text",
-          mimeType: "text/plain",
           text: `Fetch API error: ${formatError(error)}`,
         },
       ],

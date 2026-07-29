@@ -109,7 +109,7 @@ npx skills add superagents-lab/search1api-cli
 
 ## 本地模式（stdio）
 
-如果你更倾向于在本地运行，通过 npx 即可使用，无需克隆仓库：
+如果你更倾向于在本地运行，请使用 Node.js 20 或更高版本；通过 npx 即可使用，无需克隆仓库：
 
 ```json
 {
@@ -124,6 +124,10 @@ npx skills add superagents-lab/search1api-cli
   }
 }
 ```
+
+自行部署 HTTP 服务并使用反向代理时，请通过逗号分隔的
+`MCP_ALLOWED_HOSTS` 环境变量添加会到达 Node.js 进程的内部主机名。
+默认允许 `mcp.search1api.com` 和 localhost 地址。
 
 ## 工具
 
@@ -185,6 +189,7 @@ npx skills add superagents-lab/search1api-cli
 
 ## 版本历史
 
+- v0.5.0: 支持 MCP 2026-07-28 与自动协议协商；通过无状态回退兼容 2025 版本 HTTP 客户端；改为请求级认证
 - v0.4.0: 标准 `search`/`fetch` 兼容、结构化输出 schema、OAuth 安全声明、只读安全注解和官方 MCP Registry 元数据
 - v0.3.1: Remote MCP 支持 OAuth 2.1；移除已下线的 reasoning 工具
 - v0.3.0: 新增 Remote MCP 支持（Streamable HTTP），per-session API 密钥认证

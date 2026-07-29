@@ -1,21 +1,36 @@
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { log } from '../utils.js';
-import { handleSearch } from './search.js';
-import { handleFetch } from './fetch.js';
-import { handleCrawl } from './crawl.js';
-import { handleSitemap } from './sitemap.js';
-import { handleNews } from './news.js';
-import { handleTrending } from './trending.js';
-import { SEARCH_TOOL, FETCH_TOOL, CRAWL_TOOL, SITEMAP_TOOL, NEWS_TOOL, TRENDING_TOOL } from './index.js';
+import {
+  INVALID_PARAMS,
+  ProtocolError,
+  type CallToolResult,
+} from "@modelcontextprotocol/server";
+import { log } from "../utils.js";
+import { handleSearch } from "./search.js";
+import { handleFetch } from "./fetch.js";
+import { handleCrawl } from "./crawl.js";
+import { handleSitemap } from "./sitemap.js";
+import { handleNews } from "./news.js";
+import { handleTrending } from "./trending.js";
+import {
+  SEARCH_TOOL,
+  FETCH_TOOL,
+  CRAWL_TOOL,
+  SITEMAP_TOOL,
+  NEWS_TOOL,
+  TRENDING_TOOL,
+} from "./index.js";
 
 /**
  * Dispatch request based on tool name
  * @param toolName Name of the tool
  * @param args Tool parameters
- * @param apiKey Optional per-session API key
+ * @param apiKey Optional request credential
  * @returns Tool processing result
  */
-export async function handleToolCall(toolName: string, args: unknown, apiKey?: string) {
+export async function handleToolCall(
+  toolName: string,
+  args: unknown,
+  apiKey?: string
+): Promise<CallToolResult> {
   log(`Handling tool call: ${toolName}`);
 
   switch (toolName) {
@@ -39,9 +54,6 @@ export async function handleToolCall(toolName: string, args: unknown, apiKey?: s
 
     default:
       log(`Unknown tool: ${toolName}`);
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Unknown tool: ${toolName}`
-      );
+      throw new ProtocolError(INVALID_PARAMS, `Unknown tool: ${toolName}`);
   }
 }

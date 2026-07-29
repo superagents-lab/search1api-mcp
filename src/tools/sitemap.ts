@@ -2,17 +2,21 @@ import { SitemapArgs, SitemapResponse, isValidSitemapArgs } from '../types.js';
 import { makeRequest } from '../api.js';
 import { formatError } from '../utils.js';
 import { API_CONFIG } from '../config.js';
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import {
+  INVALID_PARAMS,
+  ProtocolError,
+  type CallToolResult,
+} from "@modelcontextprotocol/server";
 
 /**
  * Implementation of the sitemap tool
  */
-export async function handleSitemap(args: unknown, apiKey?: string) {
+export async function handleSitemap(
+  args: unknown,
+  apiKey?: string
+): Promise<CallToolResult> {
   if (!isValidSitemapArgs(args)) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      "Invalid sitemap arguments"
-    );
+    throw new ProtocolError(INVALID_PARAMS, "Invalid sitemap arguments");
   }
 
   try {
@@ -28,7 +32,6 @@ export async function handleSitemap(args: unknown, apiKey?: string) {
       structuredContent,
       content: [{
         type: "text",
-        mimeType: "application/json",
         text: JSON.stringify(structuredContent)
       }]
     };
@@ -36,7 +39,6 @@ export async function handleSitemap(args: unknown, apiKey?: string) {
     return {
       content: [{
         type: "text",
-        mimeType: "text/plain",
         text: `Sitemap API error: ${formatError(error)}`
       }],
       isError: true

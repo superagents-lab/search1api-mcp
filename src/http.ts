@@ -1,12 +1,19 @@
 #!/usr/bin/env node
-import { createHash, randomUUID } from "node:crypto";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { createHash } from "node:crypto";
+import { pathToFileURL } from "node:url";
+import type { Server as HttpServer } from "node:http";
+import {
+  hostHeaderValidation,
+  toNodeHandler,
+} from "@modelcontextprotocol/node";
+import {
+  createMcpHandler,
+  type AuthInfo,
+  type McpHttpHandler,
+} from "@modelcontextprotocol/server";
 import express from "express";
 import { createMcpServer } from "./server.js";
-import { log } from "./utils.js";
-
-const app = express();
+import { formatError, log } from "./utils.js";
 
 const API_BASE_URL =
   process.env.SEARCH1API_API_URL || "https://api.search1api.com";
@@ -15,7 +22,7 @@ const MCP_RESOURCE = "https://mcp.search1api.com/mcp";
 const MCP_RESOURCE_METADATA =
   "https://mcp.search1api.com/.well-known/oauth-protected-resource/mcp";
 
-type AuthenticatedCredential = {
+export type AuthenticatedCredential = {
   credential: string;
   principal: string;
 };
@@ -26,89 +33,25 @@ type UsageIdentity = {
   client_id?: string | null;
 };
 
-type McpSession = {
-  transport: StreamableHTTPServerTransport;
-  server: Server;
-  principal: string;
-  credential: { current: string };
+export type CredentialValidator = (
+  credential: string
+) => Promise<AuthenticatedCredential | null>;
+
+export type HttpAppOptions = {
+  validateCredential?: CredentialValidator;
+  allowedHostnames?: string[];
 };
 
-// The service root is documentation, not an MCP transport endpoint. Keep
-// query parameters so bookmarked campaign/support links remain attributable.
-app.get("/", (req, res) => {
-  const target = new URL("https://www.search1api.com/docs/integrations/mcp");
-  for (const [key, value] of Object.entries(req.query)) {
-    if (typeof value === "string") {
-      target.searchParams.append(key, value);
-    }
-  }
-  res.redirect(301, target.toString());
-});
-
-const protectedResourceMetadata = {
-  resource: MCP_RESOURCE,
-  authorization_servers: [AUTHORIZATION_SERVER],
-  bearer_methods_supported: ["header"],
-  scopes_supported: ["openid", "offline_access"],
-  resource_documentation: "https://www.search1api.com/auth.md",
+export type Search1ApiHttpApp = {
+  app: express.Express;
+  mcpHandler: McpHttpHandler;
+  close(): Promise<void>;
 };
 
-app.get(
-  [
-    "/.well-known/oauth-protected-resource",
-    "/.well-known/oauth-protected-resource/mcp",
-  ],
-  (_req, res) => {
-    res.type("application/json").json(protectedResourceMetadata);
-  }
-);
-
-app.get("/.well-known/oauth-authorization-server", (_req, res) => {
-  res.redirect(
-    302,
-    `${AUTHORIZATION_SERVER}/.well-known/oauth-authorization-server`
-  );
-});
-
-app.use(express.json());
-
-// Session storage: sessionId -> MCP transport, server, and authenticated
-// principal. The credential itself is mutable so a refreshed OAuth access
-// token can continue the same session after it is validated.
-const sessions = new Map<string, McpSession>();
-
-/** Extract a Bearer credential, retaining the legacy query-key fallback. */
-function extractCredential(req: express.Request): string | undefined {
-  const auth = req.headers.authorization;
-  if (auth?.startsWith("Bearer ")) {
-    return auth.slice(7).trim() || undefined;
-  }
-  const queryKey = req.query.apiKey;
-  if (typeof queryKey === "string" && queryKey.trim()) {
-    return queryKey.trim();
-  }
-  return undefined;
-}
-
-function challenge(
-  res: express.Response,
-  message: string,
-  error?: "invalid_token"
-) {
-  const errorParameter = error ? `, error="${error}"` : "";
-  res.set(
-    "WWW-Authenticate",
-    `Bearer resource_metadata="${MCP_RESOURCE_METADATA}"${errorParameter}`
-  );
-  res.status(401).json({
-    jsonrpc: "2.0",
-    error: { code: -32001, message },
-    id: null,
-  });
-}
-
-/** Validate both Clerk OAuth tokens and legacy Search1API API keys at the API. */
-async function validateCredential(
+/**
+ * Validate both Clerk OAuth tokens and legacy Search1API API keys at the API.
+ */
+export async function validateCredential(
   credential: string
 ): Promise<AuthenticatedCredential | null> {
   const response = await fetch(`${API_BASE_URL}/usage`, {
@@ -141,10 +84,187 @@ async function validateCredential(
   return { credential, principal };
 }
 
+/**
+ * Build the HTTP application without starting a listener.
+ *
+ * A single v2 handler serves the 2026-07-28 protocol and the SDK's default
+ * stateless 2025 fallback. Authentication is validated for every exchange,
+ * so no credential or principal is retained in a server-side MCP session.
+ */
+export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
+  const app = express();
+  const credentialValidator = options.validateCredential ?? validateCredential;
+  const allowedHostnames =
+    options.allowedHostnames ?? configuredAllowedHostnames();
+  const validateHost = hostHeaderValidation(allowedHostnames);
+
+  const mcpHandler = createMcpHandler(
+    ({ authInfo }) => createMcpServer(authInfo?.token),
+    {
+      legacy: "stateless",
+      onerror: (error) => log("MCP handler error:", error),
+    }
+  );
+  const nodeHandler = toNodeHandler(mcpHandler, {
+    onerror: (error) => log("MCP Node adapter error:", error),
+  });
+
+  app.use((req, res, next) => {
+    if (!validateHost(req, res)) {
+      return;
+    }
+    next();
+  });
+
+  // The service root is documentation, not an MCP transport endpoint. Keep
+  // query parameters so bookmarked campaign/support links remain attributable.
+  app.get("/", (req, res) => {
+    const target = new URL("https://www.search1api.com/docs/integrations/mcp");
+    for (const [key, value] of Object.entries(req.query)) {
+      if (typeof value === "string") {
+        target.searchParams.append(key, value);
+      }
+    }
+    res.redirect(301, target.toString());
+  });
+
+  const protectedResourceMetadata = {
+    resource: MCP_RESOURCE,
+    authorization_servers: [AUTHORIZATION_SERVER],
+    bearer_methods_supported: ["header"],
+    scopes_supported: ["openid", "offline_access"],
+    resource_documentation: "https://www.search1api.com/auth.md",
+  };
+
+  app.get(
+    [
+      "/.well-known/oauth-protected-resource",
+      "/.well-known/oauth-protected-resource/mcp",
+    ],
+    (_req, res) => {
+      res.type("application/json").json(protectedResourceMetadata);
+    }
+  );
+
+  app.get("/.well-known/oauth-authorization-server", (_req, res) => {
+    res.redirect(
+      302,
+      `${AUTHORIZATION_SERVER}/.well-known/oauth-authorization-server`
+    );
+  });
+
+  app.use(express.json());
+
+  app.all("/mcp", async (req, res) => {
+    const authenticated = await authenticateMcpRequest(
+      req,
+      res,
+      credentialValidator
+    );
+    if (!authenticated) {
+      return;
+    }
+
+    const authInfo: AuthInfo = {
+      token: authenticated.credential,
+      clientId: authenticated.principal,
+      scopes: [],
+    };
+    (req as express.Request & { auth?: AuthInfo }).auth = authInfo;
+
+    await nodeHandler(req, res, req.body);
+  });
+
+  return {
+    app,
+    mcpHandler,
+    close: () => mcpHandler.close(),
+  };
+}
+
+function configuredAllowedHostnames(): string[] {
+  const configured = (process.env.MCP_ALLOWED_HOSTS ?? "")
+    .split(",")
+    .map((hostname) => hostname.trim())
+    .filter(Boolean);
+
+  return [
+    ...new Set([
+      "mcp.search1api.com",
+      "localhost",
+      "127.0.0.1",
+      "[::1]",
+      ...configured,
+    ]),
+  ];
+}
+
+/** Start the production HTTP listener. */
+export function startHttpServer(
+  port = Number.parseInt(process.env.PORT || "3000", 10)
+): Search1ApiHttpApp & { httpServer: HttpServer } {
+  const httpApp = createHttpApp();
+  const httpServer = httpApp.app.listen(port, () => {
+    log(
+      `Search1API MCP HTTP server listening on http://localhost:${port}/mcp`
+    );
+  });
+
+  let closing = false;
+  const shutdown = async () => {
+    if (closing) {
+      return;
+    }
+    closing = true;
+    log("Shutting down HTTP server...");
+    await httpApp.close();
+    if (httpServer.listening) {
+      await new Promise<void>((resolve, reject) => {
+        httpServer.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
+  };
+
+  process.once("SIGINT", shutdown);
+  process.once("SIGTERM", shutdown);
+
+  return { ...httpApp, httpServer, close: shutdown };
+}
+
+/** Extract a Bearer credential, retaining the legacy query-key fallback. */
+function extractCredential(req: express.Request): string | undefined {
+  const auth = req.headers.authorization;
+  if (auth?.startsWith("Bearer ")) {
+    return auth.slice(7).trim() || undefined;
+  }
+  const queryKey = req.query.apiKey;
+  if (typeof queryKey === "string" && queryKey.trim()) {
+    return queryKey.trim();
+  }
+  return undefined;
+}
+
+function challenge(
+  res: express.Response,
+  message: string,
+  error?: "invalid_token"
+) {
+  const errorParameter = error ? `, error="${error}"` : "";
+  res.set(
+    "WWW-Authenticate",
+    `Bearer resource_metadata="${MCP_RESOURCE_METADATA}"${errorParameter}`
+  );
+  res.status(401).json({
+    jsonrpc: "2.0",
+    error: { code: -32001, message },
+    id: null,
+  });
+}
+
 async function authenticateMcpRequest(
   req: express.Request,
   res: express.Response,
-  expectedPrincipal?: string
+  credentialValidator: CredentialValidator
 ): Promise<AuthenticatedCredential | null> {
   const credential = extractCredential(req);
   if (!credential) {
@@ -157,7 +277,7 @@ async function authenticateMcpRequest(
 
   let authenticated: AuthenticatedCredential | null;
   try {
-    authenticated = await validateCredential(credential);
+    authenticated = await credentialValidator(credential);
   } catch (error) {
     log("Credential validation failed:", error);
     res.status(503).json({
@@ -172,163 +292,31 @@ async function authenticateMcpRequest(
   }
 
   if (!authenticated) {
-    challenge(res, "The Bearer credential is invalid or expired.", "invalid_token");
-    return null;
-  }
-  if (expectedPrincipal && authenticated.principal !== expectedPrincipal) {
-    res.status(403).json({
-      jsonrpc: "2.0",
-      error: {
-        code: -32003,
-        message: "The credential does not belong to this MCP session.",
-      },
-      id: null,
-    });
+    challenge(
+      res,
+      "The Bearer credential is invalid or expired.",
+      "invalid_token"
+    );
     return null;
   }
   return authenticated;
 }
 
-function isInitializeRequest(body: unknown): boolean {
-  if (Array.isArray(body)) {
-    return body.some(
-      (message) =>
-        typeof message === "object" &&
-        message !== null &&
-        (message as Record<string, unknown>).method === "initialize"
-    );
-  }
-  return (
-    typeof body === "object" &&
-    body !== null &&
-    (body as Record<string, unknown>).method === "initialize"
-  );
+function installGlobalErrorLogging() {
+  process.on("uncaughtException", (error) => {
+    log("Uncaught exception:", error);
+  });
+
+  process.on("unhandledRejection", (reason) => {
+    log("Unhandled rejection:", reason);
+  });
 }
 
-// Handle POST /mcp - initialize or route to an existing session.
-app.post("/mcp", async (req, res) => {
-  const sessionId = req.headers["mcp-session-id"] as string | undefined;
+const isMain =
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(process.argv[1]).href;
 
-  if (sessionId && sessions.has(sessionId)) {
-    const session = sessions.get(sessionId)!;
-    const authenticated = await authenticateMcpRequest(
-      req,
-      res,
-      session.principal
-    );
-    if (!authenticated) {
-      return;
-    }
-    session.credential.current = authenticated.credential;
-    await session.transport.handleRequest(req, res, req.body);
-    return;
-  }
-
-  if (!sessionId && isInitializeRequest(req.body)) {
-    const authenticated = await authenticateMcpRequest(req, res);
-    if (!authenticated) {
-      return;
-    }
-    const credential = { current: authenticated.credential };
-
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => randomUUID(),
-      onsessioninitialized: (sid) => {
-        sessions.set(sid, {
-          transport,
-          server,
-          principal: authenticated.principal,
-          credential,
-        });
-        log(`Session created: ${sid}`);
-      },
-    });
-
-    transport.onclose = () => {
-      if (transport.sessionId) {
-        sessions.delete(transport.sessionId);
-        log(`Session closed: ${transport.sessionId}`);
-      }
-    };
-
-    const server = createMcpServer(() => credential.current);
-    await server.connect(transport);
-    await transport.handleRequest(req, res, req.body);
-    return;
-  }
-
-  res.status(400).json({
-    jsonrpc: "2.0",
-    error: {
-      code: -32600,
-      message: "Bad request: no valid session or not an initialize request",
-    },
-    id: null,
-  });
-});
-
-// Handle GET /mcp - SSE stream for an existing session.
-app.get("/mcp", async (req, res) => {
-  const sessionId = req.headers["mcp-session-id"] as string;
-  if (!sessionId || !sessions.has(sessionId)) {
-    res.status(400).json({
-      jsonrpc: "2.0",
-      error: { code: -32600, message: "Invalid or missing session ID" },
-      id: null,
-    });
-    return;
-  }
-
-  const session = sessions.get(sessionId)!;
-  const authenticated = await authenticateMcpRequest(
-    req,
-    res,
-    session.principal
-  );
-  if (!authenticated) {
-    return;
-  }
-  session.credential.current = authenticated.credential;
-  await session.transport.handleRequest(req, res);
-});
-
-// Handle DELETE /mcp - authenticated session termination.
-app.delete("/mcp", async (req, res) => {
-  const sessionId = req.headers["mcp-session-id"] as string;
-  if (sessionId && sessions.has(sessionId)) {
-    const session = sessions.get(sessionId)!;
-    const authenticated = await authenticateMcpRequest(
-      req,
-      res,
-      session.principal
-    );
-    if (!authenticated) {
-      return;
-    }
-    await session.transport.handleRequest(req, res);
-    await session.server.close();
-    sessions.delete(sessionId);
-    log(`Session terminated: ${sessionId}`);
-    return;
-  }
-
-  res.status(400).json({
-    jsonrpc: "2.0",
-    error: { code: -32600, message: "Invalid or missing session ID" },
-    id: null,
-  });
-});
-
-const PORT = parseInt(process.env.PORT || "3000", 10);
-
-app.listen(PORT, () => {
-  log(`Search1API MCP HTTP server listening on http://localhost:${PORT}/mcp`);
-});
-
-process.on("uncaughtException", (error) => {
-  log("Uncaught exception:", error);
-});
-
-process.on("unhandledRejection", (reason) => {
-  log("Unhandled rejection:", reason);
-});
+if (isMain) {
+  installGlobalErrorLogging();
+  startHttpServer();
+}

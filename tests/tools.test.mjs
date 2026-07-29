@@ -1,12 +1,21 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
+import http from "node:http";
 import test from "node:test";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
+import {
+  Client,
+  InMemoryTransport,
+  StreamableHTTPClientTransport,
+} from "@modelcontextprotocol/client";
+import {
+  INVALID_PARAMS,
+  ProtocolError,
+} from "@modelcontextprotocol/server";
+import { serveStdio } from "@modelcontextprotocol/server/stdio";
 
 process.env.SEARCH1API_KEY = "test-key";
 
+const { createHttpApp } = await import("../build/http.js");
 const { createMcpServer } = await import("../build/server.js");
 const { handleToolCall } = await import("../build/tools/handlers.js");
 const { ALL_TOOLS } = await import("../build/tools/index.js");
@@ -18,10 +27,19 @@ const marketplaceManifest = JSON.parse(
   readFileSync(new URL("../lhm.plugin.json", import.meta.url), "utf8")
 );
 
+const EXPECTED_TOOLS = [
+  "search",
+  "fetch",
+  "news",
+  "crawl",
+  "sitemap",
+  "trending",
+];
+
 test("exports only supported public tools", () => {
   assert.deepEqual(
     ALL_TOOLS.map((tool) => tool.name),
-    ["search", "fetch", "news", "crawl", "sitemap", "trending"]
+    EXPECTED_TOOLS
   );
   assert.equal(
     existsSync(new URL("../build/tools/reasoning.js", import.meta.url)),
@@ -29,24 +47,28 @@ test("exports only supported public tools", () => {
   );
 });
 
-test("lists the supported tools over MCP", async (context) => {
-  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  const server = createMcpServer("test-key");
-  const client = new Client({ name: "search1api-mcp-test", version: "1.0.0" });
+test("serves MCP 2026-07-28 clients over HTTP", async (context) => {
+  const testServer = await startTestHttpServer();
+  const client = new Client(
+    { name: "search1api-modern-test", version: "1.0.0" },
+    { versionNegotiation: { mode: { pin: "2026-07-28" } } }
+  );
+  const transport = createAuthenticatedTransport(testServer.url);
 
   context.after(async () => {
     await client.close();
-    await server.close();
+    await testServer.close();
   });
 
-  await server.connect(serverTransport);
-  await client.connect(clientTransport);
-
+  await client.connect(transport);
   const result = await client.listTools();
+
+  assert.equal(client.getProtocolEra(), "modern");
+  assert.equal(client.getNegotiatedProtocolVersion(), "2026-07-28");
   assert.equal(client.getServerVersion()?.version, packageJson.version);
   assert.deepEqual(
     result.tools.map((tool) => tool.name),
-    ["search", "fetch", "news", "crawl", "sitemap", "trending"]
+    EXPECTED_TOOLS
   );
   assert.equal(result.tools[0].title, "Search the web");
   assert.deepEqual(result.tools[0]._meta.securitySchemes, [
@@ -81,12 +103,130 @@ test("advertises directory-ready metadata and search/fetch compatibility", () =>
   ]);
 });
 
+test("keeps 2025-era clients working through the stateless fallback", async (context) => {
+  const testServer = await startTestHttpServer();
+  const client = new Client(
+    { name: "search1api-legacy-test", version: "1.0.0" },
+    { versionNegotiation: { mode: "legacy" } }
+  );
+  const transport = createAuthenticatedTransport(testServer.url);
+
+  context.after(async () => {
+    await client.close();
+    await testServer.close();
+  });
+
+  await client.connect(transport);
+  const result = await client.listTools();
+
+  assert.equal(client.getProtocolEra(), "legacy");
+  assert.equal(client.getServerVersion()?.version, packageJson.version);
+  assert.deepEqual(
+    result.tools.map((tool) => tool.name),
+    EXPECTED_TOOLS
+  );
+});
+
+test("serves MCP 2026-07-28 clients over the stdio entry", async (context) => {
+  const [clientTransport, serverTransport] =
+    InMemoryTransport.createLinkedPair();
+  const serverHandle = serveStdio(() => createMcpServer("test-key"), {
+    transport: serverTransport,
+  });
+  const client = new Client(
+    { name: "search1api-stdio-test", version: "1.0.0" },
+    { versionNegotiation: { mode: { pin: "2026-07-28" } } }
+  );
+
+  context.after(async () => {
+    await client.close();
+    await serverHandle.close();
+  });
+
+  await client.connect(clientTransport);
+  const result = await client.listTools();
+
+  assert.equal(client.getProtocolEra(), "modern");
+  assert.deepEqual(
+    result.tools.map((tool) => tool.name),
+    EXPECTED_TOOLS
+  );
+});
+
+test("authenticates every MCP HTTP request before protocol handling", async (context) => {
+  const validatedCredentials = [];
+  const testServer = await startTestHttpServer(async (credential) => {
+    validatedCredentials.push(credential);
+    if (credential === "invalid") {
+      return null;
+    }
+    if (credential === "outage") {
+      throw new Error("validation unavailable");
+    }
+    return { credential, principal: `test:${credential}` };
+  });
+
+  context.after(() => testServer.close());
+
+  const request = (authorization) =>
+    fetch(testServer.url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(authorization ? { authorization } : {}),
+      },
+      body: "{}",
+    });
+
+  const missing = await request();
+  assert.equal(missing.status, 401);
+  assert.match(
+    missing.headers.get("www-authenticate") ?? "",
+    /resource_metadata=/
+  );
+
+  const invalid = await request("Bearer invalid");
+  assert.equal(invalid.status, 401);
+  assert.match(
+    invalid.headers.get("www-authenticate") ?? "",
+    /error="invalid_token"/
+  );
+
+  const unavailable = await request("Bearer outage");
+  assert.equal(unavailable.status, 503);
+  assert.deepEqual(validatedCredentials, ["invalid", "outage"]);
+});
+
+test("rejects DNS rebinding attempts before MCP handling", async (context) => {
+  let validationCalls = 0;
+  const testServer = await startTestHttpServer(async (credential) => {
+    validationCalls += 1;
+    return { credential, principal: `test:${credential}` };
+  });
+
+  context.after(() => testServer.close());
+
+  const response = await rawHttpRequest(testServer.url, {
+    method: "POST",
+    headers: {
+      authorization: "Bearer test-key",
+      "content-type": "application/json",
+      host: "attacker.example",
+      origin: "https://attacker.example",
+    },
+    body: "{}",
+  });
+
+  assert.equal(response.statusCode, 403);
+  assert.equal(validationCalls, 0);
+});
+
 test("rejects retired or unknown tools before making an API request", async () => {
   await assert.rejects(
     handleToolCall("reasoning", {}),
     (error) =>
-      error instanceof McpError &&
-      error.code === ErrorCode.InvalidParams &&
+      error instanceof ProtocolError &&
+      error.code === INVALID_PARAMS &&
       error.message.includes("Unknown tool: reasoning")
   );
 });
@@ -105,3 +245,58 @@ test("keeps the LobeHub marketplace manifest aligned with the server", () => {
     /reasoning|deepseek/i
   );
 });
+
+function createAuthenticatedTransport(url) {
+  return new StreamableHTTPClientTransport(url, {
+    requestInit: {
+      headers: { authorization: "Bearer test-key" },
+    },
+  });
+}
+
+async function startTestHttpServer(
+  validateCredential = async (credential) => ({
+    credential,
+    principal: `test:${credential}`,
+  })
+) {
+  const httpApp = createHttpApp({ validateCredential });
+  const httpServer = await new Promise((resolve, reject) => {
+    const server = httpApp.app.listen(0, "127.0.0.1", () => resolve(server));
+    server.on("error", reject);
+  });
+  const address = httpServer.address();
+  if (!address || typeof address === "string") {
+    throw new Error("Test HTTP server did not expose a TCP address");
+  }
+
+  return {
+    url: new URL(`http://127.0.0.1:${address.port}/mcp`),
+    async close() {
+      await new Promise((resolve, reject) => {
+        httpServer.close((error) => (error ? reject(error) : resolve()));
+      });
+      await httpApp.close();
+    },
+  };
+}
+
+function rawHttpRequest(url, { method, headers, body }) {
+  return new Promise((resolve, reject) => {
+    const request = http.request(
+      {
+        hostname: url.hostname,
+        port: url.port,
+        path: `${url.pathname}${url.search}`,
+        method,
+        headers,
+      },
+      (response) => {
+        response.resume();
+        response.on("end", () => resolve(response));
+      }
+    );
+    request.on("error", reject);
+    request.end(body);
+  });
+}

@@ -128,6 +128,17 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
     res.redirect(301, target.toString());
   });
 
+  // /mcp is a transport endpoint that answers unauthenticated crawlers with
+  // 401, so search engines gain nothing from walking this host. Keep the OAuth
+  // discovery documents reachable for agents.
+  app.get("/robots.txt", (_req, res) => {
+    res
+      .type("text/plain")
+      .send(
+        ["User-agent: *", "Disallow: /", "Allow: /.well-known/", ""].join("\n")
+      );
+  });
+
   const protectedResourceMetadata = {
     resource: MCP_RESOURCE,
     authorization_servers: [AUTHORIZATION_SERVER],

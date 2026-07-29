@@ -221,6 +221,22 @@ test("rejects DNS rebinding attempts before MCP handling", async (context) => {
   assert.equal(validationCalls, 0);
 });
 
+test("tells crawlers to skip the transport host", async (context) => {
+  const testServer = await startTestHttpServer();
+
+  context.after(() => testServer.close());
+
+  const response = await fetch(new URL("/robots.txt", testServer.url));
+
+  assert.equal(response.status, 200);
+
+  const body = await response.text();
+
+  assert.match(body, /^User-agent: \*$/m);
+  assert.match(body, /^Disallow: \/$/m);
+  assert.match(body, /^Allow: \/\.well-known\/$/m);
+});
+
 test("rejects retired or unknown tools before making an API request", async () => {
   await assert.rejects(
     handleToolCall("reasoning", {}),

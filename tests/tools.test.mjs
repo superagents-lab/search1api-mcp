@@ -29,7 +29,6 @@ const marketplaceManifest = JSON.parse(
 
 const EXPECTED_TOOLS = [
   "search",
-  "fetch",
   "news",
   "crawl",
   "sitemap",
@@ -77,7 +76,7 @@ test("serves MCP 2026-07-28 clients over HTTP", async (context) => {
   assert.deepEqual(result.tools[0].outputSchema.required, ["results"]);
 });
 
-test("advertises directory-ready metadata and search/fetch compatibility", () => {
+test("advertises directory-ready metadata and structured outputs", () => {
   for (const tool of ALL_TOOLS) {
     assert.equal(typeof tool.title, "string");
     assert.equal(tool.annotations?.readOnlyHint, true);
@@ -91,16 +90,8 @@ test("advertises directory-ready metadata and search/fetch compatibility", () =>
   }
 
   const search = ALL_TOOLS.find((tool) => tool.name === "search");
-  const fetch = ALL_TOOLS.find((tool) => tool.name === "fetch");
   assert.deepEqual(search.inputSchema.required, ["query"]);
   assert.deepEqual(search.outputSchema.required, ["results"]);
-  assert.deepEqual(fetch.inputSchema.required, ["id"]);
-  assert.deepEqual(fetch.outputSchema.required, [
-    "id",
-    "title",
-    "text",
-    "url",
-  ]);
 });
 
 test("keeps 2025-era clients working through the stateless fallback", async (context) => {
@@ -238,13 +229,15 @@ test("tells crawlers to skip the transport host", async (context) => {
 });
 
 test("rejects retired or unknown tools before making an API request", async () => {
-  await assert.rejects(
-    handleToolCall("reasoning", {}),
-    (error) =>
-      error instanceof ProtocolError &&
-      error.code === INVALID_PARAMS &&
-      error.message.includes("Unknown tool: reasoning")
-  );
+  for (const toolName of ["fetch", "reasoning"]) {
+    await assert.rejects(
+      handleToolCall(toolName, {}),
+      (error) =>
+        error instanceof ProtocolError &&
+        error.code === INVALID_PARAMS &&
+        error.message.includes(`Unknown tool: ${toolName}`)
+    );
+  }
 });
 
 test("keeps the LobeHub marketplace manifest aligned with the server", () => {

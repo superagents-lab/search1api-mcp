@@ -72,27 +72,12 @@ const SEARCH_OUTPUT_SCHEMA: NonNullable<Tool["outputSchema"]> = {
   required: ["results"],
 };
 
-const FETCH_OUTPUT_SCHEMA: NonNullable<Tool["outputSchema"]> = {
-  type: "object",
-  properties: {
-    id: { type: "string" },
-    title: { type: "string" },
-    text: { type: "string" },
-    url: { type: "string", format: "uri" },
-    metadata: {
-      type: "object",
-      additionalProperties: true,
-    },
-  },
-  required: ["id", "title", "text", "url"],
-};
-
 // Search tool definition
 export const SEARCH_TOOL: OAuthTool = {
   name: "search",
   title: "Search the web",
   description:
-    "Search the live public web when the user needs current information, sources, or research. Returns citable results with id, title, URL, and text. Pass a result id to fetch to retrieve the full page.",
+    "Search the live public web when the user needs current information, sources, or research. Returns citable results with id, title, URL, and text. Pass a result URL to crawl to retrieve the full page.",
   ...AUTHENTICATED_READ_ONLY_WEB,
   inputSchema: {
     type: "object",
@@ -145,26 +130,6 @@ export const SEARCH_TOOL: OAuthTool = {
     required: ["query"],
   },
   outputSchema: SEARCH_OUTPUT_SCHEMA,
-};
-
-// Fetch tool definition for ChatGPT deep research and company knowledge.
-export const FETCH_TOOL: OAuthTool = {
-  name: "fetch",
-  title: "Fetch a search result",
-  description:
-    "Retrieve the full readable contents of a result returned by search. Pass the result id, which is the canonical page URL. Returns id, title, full text, URL, and metadata.",
-  ...AUTHENTICATED_READ_ONLY_WEB,
-  inputSchema: {
-    type: "object",
-    properties: {
-      id: {
-        type: "string",
-        description: "Result id returned by search; for web results this is the canonical URL",
-      },
-    },
-    required: ["id"],
-  },
-  outputSchema: FETCH_OUTPUT_SCHEMA,
 };
 
 // News tool definition
@@ -232,7 +197,7 @@ export const CRAWL_TOOL: OAuthTool = {
   name: "crawl",
   title: "Read a web page",
   description:
-    "Extract the readable title and full text from a specific public URL supplied by the user. Use fetch instead when following a result returned by search.",
+    "Extract the readable title and full text from a public URL supplied by the user or returned by search.",
   ...AUTHENTICATED_READ_ONLY_WEB,
   inputSchema: {
     type: "object",
@@ -335,7 +300,6 @@ export const TRENDING_TOOL: OAuthTool = {
 
 export const ALL_TOOLS = [
   SEARCH_TOOL,
-  FETCH_TOOL,
   NEWS_TOOL,
   CRAWL_TOOL,
   SITEMAP_TOOL,

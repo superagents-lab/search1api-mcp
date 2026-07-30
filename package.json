@@ -1,6 +1,6 @@
 {
   "name": "search1api-mcp",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "mcpName": "io.github.superagents-lab/search1api",
   "description": "A Model Context Protocol (MCP) server that provides search and crawl functionality using Search1API",
   "private": false,

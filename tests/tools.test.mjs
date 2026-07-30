@@ -203,13 +203,74 @@ test("rejects DNS rebinding attempts before MCP handling", async (context) => {
       authorization: "Bearer test-key",
       "content-type": "application/json",
       host: "attacker.example",
-      origin: "https://attacker.example",
     },
     body: "{}",
   });
 
   assert.equal(response.statusCode, 403);
   assert.equal(validationCalls, 0);
+});
+
+test("rejects untrusted Origins before authentication", async (context) => {
+  let validationCalls = 0;
+  const testServer = await startTestHttpServer(async (credential) => {
+    validationCalls += 1;
+    return { credential, principal: `test:${credential}` };
+  });
+
+  context.after(() => testServer.close());
+
+  const response = await discoverRequest(testServer.url, {
+    origin: "https://attacker.example",
+  });
+  const malformedResponse = await rawHttpRequest(testServer.url, {
+    method: "POST",
+    headers: {
+      authorization: "Bearer test-key",
+      "content-type": "application/json",
+      origin: "https://attacker.example",
+    },
+    body: "{",
+  });
+
+  assert.equal(response.status, 403);
+  assert.equal(malformedResponse.statusCode, 403);
+  assert.equal(validationCalls, 0);
+});
+
+test("allows non-browser MCP requests without an Origin", async (context) => {
+  let validationCalls = 0;
+  const testServer = await startTestHttpServer(async (credential) => {
+    validationCalls += 1;
+    return { credential, principal: `test:${credential}` };
+  });
+
+  context.after(() => testServer.close());
+
+  const response = await discoverRequest(testServer.url);
+
+  assert.equal(response.status, 200);
+  assert.equal(validationCalls, 1);
+});
+
+test("allows explicitly trusted Origins", async (context) => {
+  let validationCalls = 0;
+  const testServer = await startTestHttpServer(
+    async (credential) => {
+      validationCalls += 1;
+      return { credential, principal: `test:${credential}` };
+    },
+    { allowedOriginHostnames: ["trusted.example"] }
+  );
+
+  context.after(() => testServer.close());
+
+  const response = await discoverRequest(testServer.url, {
+    origin: "https://trusted.example",
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(validationCalls, 1);
 });
 
 test("tells crawlers to skip the transport host", async (context) => {
@@ -267,9 +328,10 @@ async function startTestHttpServer(
   validateCredential = async (credential) => ({
     credential,
     principal: `test:${credential}`,
-  })
+  }),
+  options = {}
 ) {
-  const httpApp = createHttpApp({ validateCredential });
+  const httpApp = createHttpApp({ validateCredential, ...options });
   const httpServer = await new Promise((resolve, reject) => {
     const server = httpApp.app.listen(0, "127.0.0.1", () => resolve(server));
     server.on("error", reject);
@@ -288,6 +350,35 @@ async function startTestHttpServer(
       await httpApp.close();
     },
   };
+}
+
+function discoverRequest(url, { origin } = {}) {
+  return fetch(url, {
+    method: "POST",
+    headers: {
+      authorization: "Bearer test-key",
+      accept: "application/json, text/event-stream",
+      "content-type": "application/json",
+      "mcp-protocol-version": "2026-07-28",
+      "mcp-method": "server/discover",
+      ...(origin ? { origin } : {}),
+    },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "server/discover",
+      params: {
+        _meta: {
+          "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+          "io.modelcontextprotocol/clientInfo": {
+            name: "search1api-origin-test",
+            version: "1.0.0",
+          },
+          "io.modelcontextprotocol/clientCapabilities": {},
+        },
+      },
+    }),
+  });
 }
 
 function rawHttpRequest(url, { method, headers, body }) {

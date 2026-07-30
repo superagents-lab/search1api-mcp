@@ -128,7 +128,10 @@ If you prefer to run the server locally, use Node.js 20 or newer with npx — no
 For self-hosted HTTP deployments behind a proxy, add any internal hostnames
 that reach the Node.js process to the comma-separated `MCP_ALLOWED_HOSTS`
 environment variable. `mcp.search1api.com` and localhost addresses are allowed
-by default.
+by default. Browser-based clients that send an `Origin` header must also have
+their trusted origin hostnames added to the comma-separated
+`MCP_ALLOWED_ORIGINS` variable. Requests from server-side MCP clients normally
+omit `Origin` and do not require an entry.
 
 ## Tools
 
@@ -184,6 +187,7 @@ Get trending topics from popular platforms.
 
 ## Version History
 
+- v0.5.2: MCP `Origin` validation now runs before request parsing and authentication; self-hosted HTTP deployments can configure trusted browser origins with `MCP_ALLOWED_ORIGINS`
 - v0.5.1: Documentation, LobeHub manifest, and MCP Registry metadata synchronized; `robots.txt` served on the transport host
 - v0.5.0: MCP 2026-07-28 support with automatic protocol negotiation; stateless compatibility for 2025-era HTTP clients; request-level authentication
 - v0.4.0: Structured output schemas, OAuth security schemes, safety annotations, and Official MCP Registry metadata

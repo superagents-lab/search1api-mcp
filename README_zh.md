@@ -127,7 +127,9 @@ npx skills add superagents-lab/search1api-cli
 
 自行部署 HTTP 服务并使用反向代理时，请通过逗号分隔的
 `MCP_ALLOWED_HOSTS` 环境变量添加会到达 Node.js 进程的内部主机名。
-默认允许 `mcp.search1api.com` 和 localhost 地址。
+默认允许 `mcp.search1api.com` 和 localhost 地址。会发送 `Origin` 请求头的
+浏览器客户端还需要通过逗号分隔的 `MCP_ALLOWED_ORIGINS` 添加可信来源的
+主机名。服务端 MCP 客户端通常不会发送 `Origin`，因此不需要额外配置。
 
 ## 工具
 
@@ -182,6 +184,7 @@ npx skills add superagents-lab/search1api-cli
 
 ## 版本历史
 
+- v0.5.2: MCP `Origin` 校验提前到请求解析和认证之前执行；自行托管的 HTTP 部署可通过 `MCP_ALLOWED_ORIGINS` 配置信任的浏览器来源
 - v0.5.1: 同步文档、LobeHub manifest 与 MCP Registry 元数据；传输域名提供 `robots.txt`
 - v0.5.0: 支持 MCP 2026-07-28 与自动协议协商；通过无状态回退兼容 2025 版本 HTTP 客户端；改为请求级认证
 - v0.4.0: 结构化输出 schema、OAuth 安全声明、只读安全注解和官方 MCP Registry 元数据

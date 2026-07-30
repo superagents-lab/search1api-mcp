@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import type { Server as HttpServer } from "node:http";
 import {
   hostHeaderValidation,
+  originValidation,
   toNodeHandler,
 } from "@modelcontextprotocol/node";
 import {
@@ -40,6 +41,7 @@ export type CredentialValidator = (
 export type HttpAppOptions = {
   validateCredential?: CredentialValidator;
   allowedHostnames?: string[];
+  allowedOriginHostnames?: string[];
 };
 
 export type Search1ApiHttpApp = {
@@ -96,7 +98,10 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
   const credentialValidator = options.validateCredential ?? validateCredential;
   const allowedHostnames =
     options.allowedHostnames ?? configuredAllowedHostnames();
+  const allowedOriginHostnames =
+    options.allowedOriginHostnames ?? configuredAllowedOriginHostnames();
   const validateHost = hostHeaderValidation(allowedHostnames);
+  const validateOrigin = originValidation(allowedOriginHostnames);
 
   const mcpHandler = createMcpHandler(
     ({ authInfo }) => createMcpServer(authInfo?.token),
@@ -164,6 +169,13 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
     );
   });
 
+  app.use("/mcp", (req, res, next) => {
+    if (!validateOrigin(req, res)) {
+      return;
+    }
+    next();
+  });
+
   app.use(express.json());
 
   app.all("/mcp", async (req, res) => {
@@ -195,6 +207,23 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
 
 function configuredAllowedHostnames(): string[] {
   const configured = (process.env.MCP_ALLOWED_HOSTS ?? "")
+    .split(",")
+    .map((hostname) => hostname.trim())
+    .filter(Boolean);
+
+  return [
+    ...new Set([
+      "mcp.search1api.com",
+      "localhost",
+      "127.0.0.1",
+      "[::1]",
+      ...configured,
+    ]),
+  ];
+}
+
+function configuredAllowedOriginHostnames(): string[] {
+  const configured = (process.env.MCP_ALLOWED_ORIGINS ?? "")
     .split(",")
     .map((hostname) => hostname.trim())
     .filter(Boolean);

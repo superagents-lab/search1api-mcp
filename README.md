@@ -190,6 +190,7 @@ Get trending topics from popular platforms.
 
 ## Version History
 
+- v0.5.3: OAuth resource and tool metadata no longer require OIDC session scopes; Smithery and Glama registry badges added
 - v0.5.2: MCP `Origin` validation now runs before request parsing and authentication; self-hosted HTTP deployments can configure trusted browser origins with `MCP_ALLOWED_ORIGINS`
 - v0.5.1: Documentation, LobeHub manifest, and MCP Registry metadata synchronized; `robots.txt` served on the transport host
 - v0.5.0: MCP 2026-07-28 support with automatic protocol negotiation; stateless compatibility for 2025-era HTTP clients; request-level authentication

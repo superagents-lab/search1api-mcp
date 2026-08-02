@@ -187,6 +187,7 @@ npx skills add superagents-lab/search1api-cli
 
 ## 版本历史
 
+- v0.5.3: OAuth 资源与工具 metadata 不再要求 OIDC 会话 scope；添加 Smithery 与 Glama 平台 badge
 - v0.5.2: MCP `Origin` 校验提前到请求解析和认证之前执行；自行托管的 HTTP 部署可通过 `MCP_ALLOWED_ORIGINS` 配置信任的浏览器来源
 - v0.5.1: 同步文档、LobeHub manifest 与 MCP Registry 元数据；传输域名提供 `robots.txt`
 - v0.5.0: 支持 MCP 2026-07-28 与自动协议协商；通过无状态回退兼容 2025 版本 HTTP 客户端；改为请求级认证

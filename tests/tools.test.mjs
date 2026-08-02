@@ -71,7 +71,7 @@ test("serves MCP 2026-07-28 clients over HTTP", async (context) => {
   );
   assert.equal(result.tools[0].title, "Search the web");
   assert.deepEqual(result.tools[0]._meta.securitySchemes, [
-    { type: "oauth2", scopes: ["openid", "offline_access"] },
+    { type: "oauth2", scopes: [] },
   ]);
   assert.deepEqual(result.tools[0].outputSchema.required, ["results"]);
 });
@@ -83,7 +83,7 @@ test("advertises directory-ready metadata and structured outputs", () => {
     assert.equal(tool.annotations?.destructiveHint, false);
     assert.equal(tool.annotations?.openWorldHint, true);
     assert.deepEqual(tool.securitySchemes, [
-      { type: "oauth2", scopes: ["openid", "offline_access"] },
+      { type: "oauth2", scopes: [] },
     ]);
     assert.deepEqual(tool._meta.securitySchemes, tool.securitySchemes);
     assert.equal(tool.outputSchema?.type, "object");
@@ -186,6 +186,23 @@ test("authenticates every MCP HTTP request before protocol handling", async (con
   const unavailable = await request("Bearer outage");
   assert.equal(unavailable.status, 503);
   assert.deepEqual(validatedCredentials, ["invalid", "outage"]);
+});
+
+test("does not advertise OIDC session scopes as MCP resource scopes", async (context) => {
+  const testServer = await startTestHttpServer();
+
+  context.after(() => testServer.close());
+
+  const metadataUrl = new URL(
+    "/.well-known/oauth-protected-resource/mcp",
+    testServer.url
+  );
+  const response = await fetch(metadataUrl);
+  const metadata = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(metadata.resource, "https://mcp.search1api.com/mcp");
+  assert.equal("scopes_supported" in metadata, false);
 });
 
 test("rejects DNS rebinding attempts before MCP handling", async (context) => {

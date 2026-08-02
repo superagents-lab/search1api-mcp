@@ -47,20 +47,14 @@
       "securitySchemes": [
         {
           "type": "oauth2",
-          "scopes": [
-            "openid",
-            "offline_access"
-          ]
+          "scopes": []
         }
       ],
       "_meta": {
         "securitySchemes": [
           {
             "type": "oauth2",
-            "scopes": [
-              "openid",
-              "offline_access"
-            ]
+            "scopes": []
           }
         ]
       },
@@ -190,20 +184,14 @@
       "securitySchemes": [
         {
           "type": "oauth2",
-          "scopes": [
-            "openid",
-            "offline_access"
-          ]
+          "scopes": []
         }
       ],
       "_meta": {
         "securitySchemes": [
           {
             "type": "oauth2",
-            "scopes": [
-              "openid",
-              "offline_access"
-            ]
+            "scopes": []
           }
         ]
       },
@@ -325,20 +313,14 @@
       "securitySchemes": [
         {
           "type": "oauth2",
-          "scopes": [
-            "openid",
-            "offline_access"
-          ]
+          "scopes": []
         }
       ],
       "_meta": {
         "securitySchemes": [
           {
             "type": "oauth2",
-            "scopes": [
-              "openid",
-              "offline_access"
-            ]
+            "scopes": []
           }
         ]
       },
@@ -408,20 +390,14 @@
       "securitySchemes": [
         {
           "type": "oauth2",
-          "scopes": [
-            "openid",
-            "offline_access"
-          ]
+          "scopes": []
         }
       ],
       "_meta": {
         "securitySchemes": [
           {
             "type": "oauth2",
-            "scopes": [
-              "openid",
-              "offline_access"
-            ]
+            "scopes": []
           }
         ]
       },
@@ -466,20 +442,14 @@
       "securitySchemes": [
         {
           "type": "oauth2",
-          "scopes": [
-            "openid",
-            "offline_access"
-          ]
+          "scopes": []
         }
       ],
       "_meta": {
         "securitySchemes": [
           {
             "type": "oauth2",
-            "scopes": [
-              "openid",
-              "offline_access"
-            ]
+            "scopes": []
           }
         ]
       },

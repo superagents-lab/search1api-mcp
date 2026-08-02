@@ -11,17 +11,19 @@ const AUTHENTICATED_READ_ONLY_WEB: Pick<
   OAuthTool,
   "_meta" | "annotations" | "securitySchemes"
 > = {
+  // Authentication is required, but the API does not enforce a
+  // resource-specific OAuth scope for these tools.
   securitySchemes: [
     {
       type: "oauth2",
-      scopes: ["openid", "offline_access"],
+      scopes: [],
     },
   ],
   _meta: {
     securitySchemes: [
       {
         type: "oauth2",
-        scopes: ["openid", "offline_access"],
+        scopes: [],
       },
     ],
   },

@@ -144,11 +144,12 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
       );
   });
 
+  // OIDC scopes such as openid and offline_access belong to the client/AS
+  // exchange; this resource does not require any resource-specific scope.
   const protectedResourceMetadata = {
     resource: MCP_RESOURCE,
     authorization_servers: [AUTHORIZATION_SERVER],
     bearer_methods_supported: ["header"],
-    scopes_supported: ["openid", "offline_access"],
     resource_documentation: "https://www.search1api.com/auth.md",
   };
 

@@ -1,5 +1,8 @@
 # Search1API MCP 服务
 
+[![smithery badge](https://smithery.ai/badge/superagents-lab/search1api-mcp)](https://smithery.ai/servers/superagents-lab/search1api-mcp)
+[![Glama](https://img.shields.io/badge/Glama-listed-6C5CE7)](https://glama.ai/mcp/servers/superagents-lab/search1api-mcp)
+
 [English](./README.md)
 
 [Search1API](https://www.search1api.com/?utm_source=mcp) 官方 MCP 服务 — 一个 API 搞定搜索、新闻、爬虫等能力。

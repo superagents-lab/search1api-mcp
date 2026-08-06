@@ -1,6 +1,6 @@
 {
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "search1api",
-  "displayName": "Search1API",
   "version": "0.5.3",
   "description": "Web search, news, page crawl, sitemap, and trending topics via Search1API.",
   "author": {
@@ -18,6 +18,5 @@
     "crawl",
     "sitemap",
     "trending"
-  ],
-  "logo": "assets/logo.svg"
+  ]
 }

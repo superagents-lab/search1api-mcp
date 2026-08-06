@@ -1,0 +1,23 @@
+{
+  "name": "search1api",
+  "displayName": "Search1API",
+  "version": "0.5.1",
+  "description": "Web search, news, page crawl, sitemap, and trending topics via Search1API.",
+  "author": {
+    "name": "Search1API",
+    "url": "https://www.search1api.com"
+  },
+  "homepage": "https://www.search1api.com",
+  "repository": "https://github.com/superagents-lab/search1api-mcp",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "search",
+    "web-search",
+    "news",
+    "crawl",
+    "sitemap",
+    "trending"
+  ],
+  "logo": "assets/logo.svg"
+}

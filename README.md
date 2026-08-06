@@ -50,6 +50,12 @@ https://mcp.search1api.com/mcp?apiKey=YOUR_SEARCH1API_KEY
 
 ### Cursor
 
+Install as a Cursor plugin (recommended): this repo includes `.cursor-plugin/plugin.json` and `mcp.json` for Remote MCP with OAuth. Submit or install from [cursor.directory](https://cursor.directory) / the Cursor Marketplace, then sign in when prompted.
+
+For local testing, copy the plugin files into `~/.cursor/plugins/local/search1api` (`.cursor-plugin/`, `mcp.json`, `assets/`). Do not symlink from outside that directory — Cursor rejects external symlink targets.
+
+Or configure manually:
+
 ```json
 {
   "mcpServers": {

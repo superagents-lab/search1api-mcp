@@ -50,6 +50,12 @@ https://mcp.search1api.com/mcp?apiKey=YOUR_SEARCH1API_KEY
 
 ### Cursor
 
+推荐以 Cursor 插件方式安装：本仓库已包含 `.cursor-plugin/plugin.json` 和 `mcp.json`（Remote MCP + OAuth）。可通过 [cursor.directory](https://cursor.directory) 或 Cursor Marketplace 安装，首次连接时按提示登录。
+
+本地测试时，请将插件文件复制到 `~/.cursor/plugins/local/search1api`（`.cursor-plugin/`、`mcp.json`、`assets/`）。不要从该目录外做 symlink——Cursor 会拒绝指向外部的符号链接。
+
+也可手动配置：
+
 ```json
 {
   "mcpServers": {

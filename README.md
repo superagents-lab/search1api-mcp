@@ -1,5 +1,7 @@
 # Search1API MCP Server
 
+[![MCP Toplist](https://mcptoplist.com/badge/io.github.superagents-lab%2Fsearch1api.svg)](https://mcptoplist.com/server/io.github.superagents-lab%2Fsearch1api)
+
 [![smithery badge](https://smithery.ai/badge/superagents-lab/search1api-mcp)](https://smithery.ai/servers/superagents-lab/search1api-mcp)
 [![Glama](https://img.shields.io/badge/Glama-listed-6C5CE7)](https://glama.ai/mcp/servers/superagents-lab/search1api-mcp)
 

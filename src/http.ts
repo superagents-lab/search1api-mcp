@@ -18,7 +18,7 @@ import { formatError, log } from "./utils.js";
 
 const API_BASE_URL =
   process.env.SEARCH1API_API_URL || "https://api.search1api.com";
-const DEFAULT_AUTHORIZATION_SERVER = "https://clerk.search1api.com";
+const DEFAULT_AUTHORIZATION_SERVER = "https://clerk.s1.dev";
 const OAUTH_DISCOVERY_CACHE_CONTROL = "public, max-age=60, s-maxage=60";
 const MCP_RESOURCE = "https://mcp.search1api.com/mcp";
 const MCP_RESOURCE_METADATA =

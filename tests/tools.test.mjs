@@ -203,7 +203,7 @@ test("does not advertise OIDC session scopes as MCP resource scopes", async (con
   assert.equal(response.status, 200);
   assert.equal(metadata.resource, "https://mcp.search1api.com/mcp");
   assert.deepEqual(metadata.authorization_servers, [
-    "https://clerk.search1api.com",
+    "https://clerk.s1.dev",
   ]);
   assert.equal(
     response.headers.get("cache-control"),

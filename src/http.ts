@@ -18,7 +18,8 @@ import { formatError, log } from "./utils.js";
 
 const API_BASE_URL =
   process.env.SEARCH1API_API_URL || "https://api.search1api.com";
-const AUTHORIZATION_SERVER = "https://clerk.search1api.com";
+const DEFAULT_AUTHORIZATION_SERVER = "https://clerk.search1api.com";
+const OAUTH_DISCOVERY_CACHE_CONTROL = "public, max-age=60, s-maxage=60";
 const MCP_RESOURCE = "https://mcp.search1api.com/mcp";
 const MCP_RESOURCE_METADATA =
   "https://mcp.search1api.com/.well-known/oauth-protected-resource/mcp";
@@ -40,6 +41,7 @@ export type CredentialValidator = (
 
 export type HttpAppOptions = {
   validateCredential?: CredentialValidator;
+  authorizationServer?: string;
   allowedHostnames?: string[];
   allowedOriginHostnames?: string[];
 };
@@ -96,6 +98,11 @@ export async function validateCredential(
 export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
   const app = express();
   const credentialValidator = options.validateCredential ?? validateCredential;
+  const authorizationServer = normalizeAuthorizationServer(
+    options.authorizationServer ??
+      process.env.OAUTH_AUTHORIZATION_SERVER ??
+      DEFAULT_AUTHORIZATION_SERVER
+  );
   const allowedHostnames =
     options.allowedHostnames ?? configuredAllowedHostnames();
   const allowedOriginHostnames =
@@ -148,7 +155,7 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
   // exchange; this resource does not require any resource-specific scope.
   const protectedResourceMetadata = {
     resource: MCP_RESOURCE,
-    authorization_servers: [AUTHORIZATION_SERVER],
+    authorization_servers: [authorizationServer],
     bearer_methods_supported: ["header"],
     resource_documentation: "https://www.search1api.com/auth.md",
   };
@@ -159,15 +166,20 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
       "/.well-known/oauth-protected-resource/mcp",
     ],
     (_req, res) => {
-      res.type("application/json").json(protectedResourceMetadata);
+      res
+        .set("Cache-Control", OAUTH_DISCOVERY_CACHE_CONTROL)
+        .type("application/json")
+        .json(protectedResourceMetadata);
     }
   );
 
   app.get("/.well-known/oauth-authorization-server", (_req, res) => {
-    res.redirect(
-      302,
-      `${AUTHORIZATION_SERVER}/.well-known/oauth-authorization-server`
-    );
+    res
+      .set("Cache-Control", OAUTH_DISCOVERY_CACHE_CONTROL)
+      .redirect(
+        302,
+        `${authorizationServer}/.well-known/oauth-authorization-server`
+      );
   });
 
   app.use("/mcp", (req, res, next) => {
@@ -204,6 +216,25 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
     mcpHandler,
     close: () => mcpHandler.close(),
   };
+}
+
+function normalizeAuthorizationServer(value: string): string {
+  const url = new URL(value.trim());
+  const isHttpsOrigin =
+    url.protocol === "https:" &&
+    !url.username &&
+    !url.password &&
+    url.pathname === "/" &&
+    !url.search &&
+    !url.hash;
+
+  if (!isHttpsOrigin) {
+    throw new Error(
+      "OAUTH_AUTHORIZATION_SERVER must be a valid HTTPS origin"
+    );
+  }
+
+  return url.origin;
 }
 
 function configuredAllowedHostnames(): string[] {

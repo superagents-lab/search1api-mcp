@@ -202,7 +202,57 @@ test("does not advertise OIDC session scopes as MCP resource scopes", async (con
 
   assert.equal(response.status, 200);
   assert.equal(metadata.resource, "https://mcp.search1api.com/mcp");
+  assert.deepEqual(metadata.authorization_servers, [
+    "https://clerk.search1api.com",
+  ]);
+  assert.equal(
+    response.headers.get("cache-control"),
+    "public, max-age=60, s-maxage=60"
+  );
   assert.equal("scopes_supported" in metadata, false);
+});
+
+test("supports a coordinated OAuth issuer cutover", async (context) => {
+  const testServer = await startTestHttpServer(undefined, {
+    authorizationServer: "https://clerk.s1.dev/",
+  });
+
+  context.after(() => testServer.close());
+
+  const metadataResponse = await fetch(
+    new URL("/.well-known/oauth-protected-resource/mcp", testServer.url)
+  );
+  const metadata = await metadataResponse.json();
+  assert.deepEqual(metadata.authorization_servers, ["https://clerk.s1.dev"]);
+
+  const redirectResponse = await fetch(
+    new URL("/.well-known/oauth-authorization-server", testServer.url),
+    { redirect: "manual" }
+  );
+  assert.equal(redirectResponse.status, 302);
+  assert.equal(
+    redirectResponse.headers.get("location"),
+    "https://clerk.s1.dev/.well-known/oauth-authorization-server"
+  );
+  assert.equal(
+    redirectResponse.headers.get("cache-control"),
+    "public, max-age=60, s-maxage=60"
+  );
+});
+
+test("rejects invalid OAuth authorization server origins", () => {
+  for (const authorizationServer of [
+    "http://clerk.s1.dev",
+    "https://user:password@clerk.s1.dev",
+    "https://clerk.s1.dev/oauth",
+    "https://clerk.s1.dev?tenant=search1api",
+    "https://clerk.s1.dev#oauth",
+  ]) {
+    assert.throws(
+      () => createHttpApp({ authorizationServer }),
+      /must be a valid HTTPS origin/
+    );
+  }
 });
 
 test("rejects DNS rebinding attempts before MCP handling", async (context) => {

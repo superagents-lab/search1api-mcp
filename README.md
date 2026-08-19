@@ -5,7 +5,7 @@
 
 [中文文档](./README_zh.md)
 
-The official MCP server for [Search1API](https://www.search1api.com/?utm_source=mcp) — web search, news, page retrieval, sitemap discovery, and trending topics in one API.
+The official MCP server for [Search1API](https://s1.dev/?utm_source=mcp) — web search, news, page retrieval, sitemap discovery, and trending topics in one API.
 
 ## Authentication
 

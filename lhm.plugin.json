@@ -1,7 +1,7 @@
 {
   "identifier": "fatwang2-search1api-mcp",
   "name": "Search1API MCP Server",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "author": "Search1API",
   "authorUrl": "https://github.com/superagents-lab",
   "category": "web-search",

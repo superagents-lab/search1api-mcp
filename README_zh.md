@@ -5,7 +5,7 @@
 
 [English](./README.md)
 
-[Search1API](https://www.search1api.com/?utm_source=mcp) 官方 MCP 服务 — 一个 API 搞定搜索、新闻、爬虫等能力。
+[Search1API](https://s1.dev/?utm_source=mcp) 官方 MCP 服务 — 一个 API 搞定搜索、新闻、爬虫等能力。
 
 ## 认证
 

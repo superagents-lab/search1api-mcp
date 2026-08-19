@@ -14,6 +14,8 @@ import {
 } from "@modelcontextprotocol/server";
 import express from "express";
 import { createMcpServer } from "./server.js";
+import { ALL_TOOLS } from "./tools/index.js";
+import { PACKAGE_VERSION } from "./version.js";
 import { formatError, log } from "./utils.js";
 
 const API_BASE_URL =
@@ -131,7 +133,7 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
   // The service root is documentation, not an MCP transport endpoint. Keep
   // query parameters so bookmarked campaign/support links remain attributable.
   app.get("/", (req, res) => {
-    const target = new URL("https://www.search1api.com/docs/integrations/mcp");
+    const target = new URL("https://s1.dev/docs/integrations/mcp");
     for (const [key, value] of Object.entries(req.query)) {
       if (typeof value === "string") {
         target.searchParams.append(key, value);
@@ -157,7 +159,7 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
     resource: MCP_RESOURCE,
     authorization_servers: [authorizationServer],
     bearer_methods_supported: ["header"],
-    resource_documentation: "https://www.search1api.com/auth.md",
+    resource_documentation: "https://s1.dev/auth.md",
   };
 
   app.get(
@@ -172,6 +174,48 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
         .json(protectedResourceMetadata);
     }
   );
+
+  // /mcp answers unauthenticated callers with 401 by design, so this card is
+  // the only pre-connection description of the server. It is built from
+  // ALL_TOOLS, so the advertised tool surface cannot drift from the real one.
+  app.get("/.well-known/mcp/server-card.json", (_req, res) => {
+    res
+      .set("Cache-Control", OAUTH_DISCOVERY_CACHE_CONTROL)
+      .type("application/json")
+      .json({
+        name: "Search1API",
+        version: PACKAGE_VERSION,
+        description:
+          "Remote MCP server for Search1API. Exposes live web search, news, page reading, sitemap discovery, and trending topics as tools for AI agents.",
+        serverUrl: MCP_RESOURCE,
+        tools: ALL_TOOLS.map((tool) => ({
+          name: tool.name,
+          title: tool.title,
+          description: tool.description,
+          inputSchema: tool.inputSchema,
+          annotations: tool.annotations,
+        })),
+        serverInfo: {
+          name: "Search1API",
+          title: "Search1API MCP",
+          version: PACKAGE_VERSION,
+        },
+        protocolVersion: "2025-06-18",
+        transport: { type: "streamable-http", endpoint: MCP_RESOURCE },
+        capabilities: { tools: {} },
+        authentication: {
+          type: "oauth2",
+          protectedResourceMetadata: MCP_RESOURCE_METADATA,
+          authorizationServerMetadata: `${authorizationServer}/.well-known/oauth-authorization-server`,
+          legacyApiKey: {
+            supported: true,
+            method: "Authorization: Bearer SEARCH1API_KEY",
+          },
+        },
+        homepage: "https://s1.dev",
+        documentation: "https://s1.dev/docs",
+      });
+  });
 
   app.get("/.well-known/oauth-authorization-server", (_req, res) => {
     res

@@ -1,20 +1,34 @@
 #!/usr/bin/env node
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { API_KEY } from "./config.js";
-import { createMcpServer } from "./server.js";
+import { createMcpServer, unauthenticatedCredential } from "./server.js";
 import { log } from "./utils.js";
 
 function main() {
+  // Serve even without a key: clients and directory tooling routinely probe a
+  // freshly installed package for its tool list before any credential is
+  // configured, and exiting here leaves them with a dead pipe rather than an
+  // answer. Tool calls still refuse until SEARCH1API_KEY is set.
   if (!API_KEY) {
-    log("SEARCH1API_KEY environment variable is not set");
-    process.exit(1);
+    log(
+      "SEARCH1API_KEY is not set; serving tool metadata only. Set it to run searches."
+    );
   }
 
   log("Starting Search1API MCP server (stdio mode)");
-  const handle = serveStdio(() => createMcpServer(API_KEY), {
-    legacy: "serve",
-    onerror: (error) => log("MCP stdio error:", error),
-  });
+  const handle = serveStdio(
+    () =>
+      createMcpServer(
+        API_KEY ??
+          unauthenticatedCredential(
+            "SEARCH1API_KEY is not set. Set it in the server environment to call Search1API tools."
+          )
+      ),
+    {
+      legacy: "serve",
+      onerror: (error) => log("MCP stdio error:", error),
+    }
+  );
   log("Server started successfully");
 
   let closing = false;

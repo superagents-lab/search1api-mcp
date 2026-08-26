@@ -16,7 +16,9 @@ import { serveStdio } from "@modelcontextprotocol/server/stdio";
 process.env.SEARCH1API_KEY = "test-key";
 
 const { createHttpApp } = await import("../build/http.js");
-const { createMcpServer } = await import("../build/server.js");
+const { createMcpServer, unauthenticatedCredential } = await import(
+  "../build/server.js"
+);
 const { handleToolCall } = await import("../build/tools/handlers.js");
 const { ALL_TOOLS } = await import("../build/tools/index.js");
 const { RESOURCES } = await import("../build/resources.js");
@@ -383,6 +385,175 @@ test("keeps the LobeHub marketplace manifest aligned with the server", () => {
   );
 });
 
+test("answers malformed request bodies with JSON-RPC, not HTML", async (context) => {
+  const testServer = await startTestHttpServer();
+
+  context.after(() => testServer.close());
+
+  const response = await fetch(testServer.url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{ not json",
+  });
+
+  assert.equal(response.status, 400);
+  assert.match(response.headers.get("content-type") ?? "", /application\/json/);
+
+  const payload = await response.json();
+  assert.equal(payload.jsonrpc, "2.0");
+  assert.equal(payload.id, null);
+  assert.equal(typeof payload.error.code, "number");
+});
+
+test("serves tool metadata over stdio without a configured API key", async (context) => {
+  const [clientTransport, serverTransport] =
+    InMemoryTransport.createLinkedPair();
+  const serverHandle = serveStdio(
+    () => createMcpServer(unauthenticatedCredential("SEARCH1API_KEY is not set.")),
+    { transport: serverTransport }
+  );
+  const client = new Client(
+    { name: "search1api-stdio-no-key-test", version: "1.0.0" },
+    { versionNegotiation: { mode: { pin: "2026-07-28" } } }
+  );
+
+  context.after(async () => {
+    await client.close();
+    await serverHandle.close();
+  });
+
+  await client.connect(clientTransport);
+
+  assert.deepEqual(
+    (await client.listTools()).tools.map((tool) => tool.name),
+    EXPECTED_TOOLS
+  );
+
+  // The key is present in this process' environment, so a tool call that
+  // reached makeRequest would spend it. It must refuse before that.
+  const refused = await client.callTool({
+    name: "search",
+    arguments: { query: "search1api" },
+  });
+
+  assert.equal(
+    refused.isError,
+    true,
+    `expected a refusal, got ${JSON.stringify(refused)}`
+  );
+  assert.match(JSON.stringify(refused), /SEARCH1API_KEY is not set/);
+});
+
+test("serves discovery anonymously but still gates tool calls", async (context) => {
+  let validationCalls = 0;
+  const testServer = await startTestHttpServer(async (credential) => {
+    validationCalls += 1;
+    return { credential, principal: `test:${credential}` };
+  });
+
+  context.after(() => testServer.close());
+
+  const initialize = await anonymousRequest(testServer.url, {
+    jsonrpc: "2.0",
+    id: 1,
+    method: "initialize",
+    params: {
+      protocolVersion: "2025-06-18",
+      capabilities: {},
+      clientInfo: { name: "directory-scanner", version: "1.0.0" },
+    },
+  });
+  assert.equal(initialize.status, 200);
+
+  const listed = await anonymousRequest(testServer.url, {
+    jsonrpc: "2.0",
+    id: 2,
+    method: "tools/list",
+  });
+  assert.equal(listed.status, 200);
+  assert.deepEqual(
+    (await readRpcPayload(listed)).result.tools.map((tool) => tool.name),
+    EXPECTED_TOOLS
+  );
+
+  const called = await anonymousRequest(testServer.url, {
+    jsonrpc: "2.0",
+    id: 3,
+    method: "tools/call",
+    params: { name: "search", arguments: { query: "search1api" } },
+  });
+  assert.equal(called.status, 401);
+  assert.match(called.headers.get("www-authenticate") ?? "", /resource_metadata=/);
+
+  // Anonymous metadata must never cost an upstream credential check.
+  assert.equal(validationCalls, 0);
+});
+
+test("keeps a batch containing a tool call behind authentication", async (context) => {
+  const testServer = await startTestHttpServer();
+
+  context.after(() => testServer.close());
+
+  const mixedBatch = await anonymousRequest(testServer.url, [
+    { jsonrpc: "2.0", id: 1, method: "tools/list" },
+    {
+      jsonrpc: "2.0",
+      id: 2,
+      method: "tools/call",
+      params: { name: "search", arguments: { query: "search1api" } },
+    },
+  ]);
+
+  assert.equal(mixedBatch.status, 401);
+});
+
+test("does not treat a mismatched mcp-method header as discovery", async (context) => {
+  const testServer = await startTestHttpServer();
+
+  context.after(() => testServer.close());
+
+  const spoofed = await anonymousRequest(
+    testServer.url,
+    { jsonrpc: "2.0", id: 1, method: "tools/list" },
+    { "mcp-method": "tools/call" }
+  );
+
+  assert.equal(spoofed.status, 401);
+});
+
+test("serves the 2026-07-28 discovery method anonymously", async (context) => {
+  const testServer = await startTestHttpServer();
+
+  context.after(() => testServer.close());
+
+  const response = await discoverRequest(testServer.url, { anonymous: true });
+
+  assert.equal(response.status, 200);
+});
+
+function anonymousRequest(url, body, headers = {}) {
+  return fetch(url, {
+    method: "POST",
+    headers: {
+      accept: "application/json, text/event-stream",
+      "content-type": "application/json",
+      ...headers,
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+/** Read one JSON-RPC payload from either a JSON or an SSE-framed response. */
+async function readRpcPayload(response) {
+  const body = await response.text();
+  if ((response.headers.get("content-type") ?? "").includes("text/event-stream")) {
+    const data = body.split("\n").find((line) => line.startsWith("data:"));
+    assert.ok(data, `no SSE data frame in: ${body}`);
+    return JSON.parse(data.slice("data:".length).trim());
+  }
+  return JSON.parse(body);
+}
+
 function createAuthenticatedTransport(url) {
   return new StreamableHTTPClientTransport(url, {
     requestInit: {
@@ -419,11 +590,11 @@ async function startTestHttpServer(
   };
 }
 
-function discoverRequest(url, { origin } = {}) {
+function discoverRequest(url, { origin, anonymous } = {}) {
   return fetch(url, {
     method: "POST",
     headers: {
-      authorization: "Bearer test-key",
+      ...(anonymous ? {} : { authorization: "Bearer test-key" }),
       accept: "application/json, text/event-stream",
       "content-type": "application/json",
       "mcp-protocol-version": "2026-07-28",

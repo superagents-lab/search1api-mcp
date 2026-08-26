@@ -11,6 +11,7 @@ The official MCP server for [Search1API](https://s1.dev/?utm_source=mcp) — web
 
 - OAuth-aware clients can connect to the Remote MCP URL directly, then sign in and approve access in the browser.
 - Existing integrations can continue to use an API key from the [Search1API dashboard](https://dashboard.search1api.com).
+- Tool calls always require a credential. Tool discovery (`initialize`, `tools/list`) is answered without one, so clients and directories can inspect the server before signing in.
 
 ## Quick Start (Remote MCP)
 
@@ -196,6 +197,8 @@ Get trending topics from popular platforms.
 
 ## Version History
 
+- v0.6.0: MCP discovery (`initialize`, `tools/list`, `resources/*`, `prompts/list`, `server/discover`) is served without a credential so clients and directories can enumerate tools before signing in; tool calls still require OAuth or an API key. Stdio mode starts without `SEARCH1API_KEY` and serves tool metadata, refusing only at call time. Malformed requests answer as JSON-RPC instead of an HTML error page
+- v0.5.4: OAuth issuer moved to `clerk.s1.dev` and is configurable with `OAUTH_AUTHORIZATION_SERVER`; MCP server card published at `/.well-known/mcp/server-card.json`; OAuth discovery documents now send cache headers
 - v0.5.3: OAuth resource and tool metadata no longer require OIDC session scopes; Smithery and Glama registry badges added
 - v0.5.2: MCP `Origin` validation now runs before request parsing and authentication; self-hosted HTTP deployments can configure trusted browser origins with `MCP_ALLOWED_ORIGINS`
 - v0.5.1: Documentation, LobeHub manifest, and MCP Registry metadata synchronized; `robots.txt` served on the transport host

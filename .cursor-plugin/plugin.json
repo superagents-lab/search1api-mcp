@@ -1,7 +1,7 @@
 {
   "name": "search1api",
   "displayName": "Search1API",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "description": "Web search, news, page crawl, sitemap, and trending topics via Search1API.",
   "author": {
     "name": "Search1API",

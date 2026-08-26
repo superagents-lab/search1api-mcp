@@ -11,7 +11,24 @@ import { ALL_TOOLS } from "./tools/index.js";
 import { formatError, log } from "./utils.js";
 import { PACKAGE_VERSION } from "./version.js";
 
-type CredentialProvider = string | (() => string | undefined);
+export type CredentialProvider = string | (() => string | undefined);
+
+/** JSON-RPC error code this server uses for a missing or rejected credential. */
+export const UNAUTHENTICATED = -32001;
+
+/**
+ * Build a credential provider that refuses instead of resolving.
+ *
+ * Both entry points serve tool metadata without a credential, so a tool handler
+ * can be reached with nothing to spend. Refusing here keeps makeRequest from
+ * falling back to the operator's own SEARCH1API_KEY and billing an
+ * unauthenticated caller's search to us.
+ */
+export function unauthenticatedCredential(message: string): CredentialProvider {
+  return () => {
+    throw new ProtocolError(UNAUTHENTICATED, message);
+  };
+}
 
 /**
  * Create one transport-neutral MCP server instance.

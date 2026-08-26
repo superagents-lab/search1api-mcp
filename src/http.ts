@@ -9,11 +9,17 @@ import {
 } from "@modelcontextprotocol/node";
 import {
   createMcpHandler,
+  INTERNAL_ERROR,
+  PARSE_ERROR,
   type AuthInfo,
   type McpHttpHandler,
 } from "@modelcontextprotocol/server";
 import express from "express";
-import { createMcpServer } from "./server.js";
+import {
+  createMcpServer,
+  unauthenticatedCredential,
+  UNAUTHENTICATED,
+} from "./server.js";
 import { ALL_TOOLS } from "./tools/index.js";
 import { PACKAGE_VERSION } from "./version.js";
 import { formatError, log } from "./utils.js";
@@ -25,6 +31,27 @@ const OAUTH_DISCOVERY_CACHE_CONTROL = "public, max-age=60, s-maxage=60";
 const MCP_RESOURCE = "https://mcp.search1api.com/mcp";
 const MCP_RESOURCE_METADATA =
   "https://mcp.search1api.com/.well-known/oauth-protected-resource/mcp";
+
+/**
+ * JSON-RPC methods that only return static server metadata.
+ *
+ * The tool and resource descriptors are already published in the repository
+ * manifests, the server card, and the MCP registry, so answering them for an
+ * anonymous caller discloses nothing new and lets directory scanners enumerate
+ * the server without first completing an OAuth exchange. Every method that
+ * spends credits or reaches the Search1API backend is deliberately absent.
+ */
+const PUBLIC_MCP_METHODS = new Set([
+  "initialize",
+  "notifications/initialized",
+  "ping",
+  "server/discover",
+  "tools/list",
+  "prompts/list",
+  "resources/list",
+  "resources/templates/list",
+  "resources/read",
+]);
 
 export type AuthenticatedCredential = {
   credential: string;
@@ -94,8 +121,10 @@ export async function validateCredential(
  * Build the HTTP application without starting a listener.
  *
  * A single v2 handler serves the 2026-07-28 protocol and the SDK's default
- * stateless 2025 fallback. Authentication is validated for every exchange,
- * so no credential or principal is retained in a server-side MCP session.
+ * stateless 2025 fallback. Every presented credential is validated per
+ * exchange, so no credential or principal is retained in a server-side MCP
+ * session. An exchange that presents no credential at all reaches only the
+ * metadata methods in PUBLIC_MCP_METHODS.
  */
 export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
   const app = express();
@@ -113,7 +142,7 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
   const validateOrigin = originValidation(allowedOriginHostnames);
 
   const mcpHandler = createMcpHandler(
-    ({ authInfo }) => createMcpServer(authInfo?.token),
+    ({ authInfo }) => createMcpServer(toolCredential(authInfo)),
     {
       legacy: "stateless",
       onerror: (error) => log("MCP handler error:", error),
@@ -142,9 +171,9 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
     res.redirect(301, target.toString());
   });
 
-  // /mcp is a transport endpoint that answers unauthenticated crawlers with
-  // 401, so search engines gain nothing from walking this host. Keep the OAuth
-  // discovery documents reachable for agents.
+  // /mcp is a transport endpoint whose only anonymous answers are static
+  // descriptors, so search engines gain nothing from walking this host. Keep
+  // the OAuth discovery documents reachable for agents.
   app.get("/robots.txt", (_req, res) => {
     res
       .type("text/plain")
@@ -175,9 +204,10 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
     }
   );
 
-  // /mcp answers unauthenticated callers with 401 by design, so this card is
-  // the only pre-connection description of the server. It is built from
-  // ALL_TOOLS, so the advertised tool surface cannot drift from the real one.
+  // A single static document for directories that read one URL rather than
+  // speak MCP. /mcp now answers tools/list anonymously too, so this card is a
+  // convenience rather than the only pre-connection description. It is built
+  // from ALL_TOOLS, so neither surface can drift from the real tool set.
   app.get("/.well-known/mcp/server-card.json", (_req, res) => {
     res
       .set("Cache-Control", OAUTH_DISCOVERY_CACHE_CONTROL)
@@ -236,24 +266,59 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
   app.use(express.json());
 
   app.all("/mcp", async (req, res) => {
-    const authenticated = await authenticateMcpRequest(
+    const outcome = await authenticateMcpRequest(
       req,
       res,
-      credentialValidator
+      credentialValidator,
+      isPublicDiscovery(req)
     );
-    if (!authenticated) {
+    if (outcome.status === "handled") {
       return;
     }
 
-    const authInfo: AuthInfo = {
-      token: authenticated.credential,
-      clientId: authenticated.principal,
-      scopes: [],
-    };
-    (req as express.Request & { auth?: AuthInfo }).auth = authInfo;
+    if (outcome.status === "authenticated") {
+      const authInfo: AuthInfo = {
+        token: outcome.credential.credential,
+        clientId: outcome.credential.principal,
+        scopes: [],
+      };
+      (req as express.Request & { auth?: AuthInfo }).auth = authInfo;
+    }
 
     await nodeHandler(req, res, req.body);
   });
+
+  // Express renders an HTML page for anything that fails before a route runs --
+  // most often body-parser rejecting a malformed or oversized payload. MCP
+  // clients and directory validators only parse JSON-RPC, so shape it here.
+  app.use(
+    "/mcp",
+    (
+      error: Error & { status?: number; statusCode?: number },
+      _req: express.Request,
+      res: express.Response,
+      next: express.NextFunction
+    ) => {
+      if (res.headersSent) {
+        next(error);
+        return;
+      }
+      log("MCP request rejected before dispatch:", error);
+
+      const status = error.status ?? error.statusCode ?? 500;
+      const clientError = status >= 400 && status < 500;
+      res.status(clientError ? status : 500).json({
+        jsonrpc: "2.0",
+        error: {
+          code: clientError ? PARSE_ERROR : INTERNAL_ERROR,
+          message: clientError
+            ? "The request body is not a valid JSON-RPC message."
+            : "The MCP request could not be processed.",
+        },
+        id: null,
+      });
+    }
+  );
 
   return {
     app,
@@ -372,25 +437,97 @@ function challenge(
   );
   res.status(401).json({
     jsonrpc: "2.0",
-    error: { code: -32001, message },
+    error: { code: UNAUTHENTICATED, message },
     id: null,
   });
 }
 
+/**
+ * Resolve the credential a tool handler is allowed to spend.
+ *
+ * Anonymous exchanges only ever reach metadata methods, so no tool handler
+ * should observe one. Should a future routing change let a call through, fail
+ * loudly here rather than let makeRequest fall back to the operator's own
+ * SEARCH1API_KEY and bill an unauthenticated caller to us.
+ */
+function toolCredential(authInfo?: AuthInfo) {
+  if (authInfo?.token) {
+    return authInfo.token;
+  }
+  return unauthenticatedCredential(
+    "Authentication is required to call Search1API tools."
+  );
+}
+
+/**
+ * Collect every JSON-RPC method named by one HTTP exchange.
+ *
+ * The 2026-07-28 transport routes on the mcp-method header while the body
+ * repeats the method, and a legacy batch names one per array entry; all of them
+ * have to be public for the exchange to be. Returns null when any part of the
+ * request names no method, so an unrecognised shape falls through to the
+ * authenticated path instead of being mistaken for discovery.
+ */
+function requestedMcpMethods(req: express.Request): string[] | null {
+  const methods: string[] = [];
+
+  const headerMethod = req.headers["mcp-method"];
+  if (typeof headerMethod === "string" && headerMethod.trim()) {
+    methods.push(headerMethod.trim());
+  }
+
+  const entries = Array.isArray(req.body) ? req.body : [req.body];
+  for (const entry of entries) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      return null;
+    }
+    const method = (entry as { method?: unknown }).method;
+    if (typeof method !== "string" || !method) {
+      return null;
+    }
+    methods.push(method);
+  }
+
+  return methods.length > 0 ? methods : null;
+}
+
+/** Whether this exchange may be served without any credential at all. */
+function isPublicDiscovery(req: express.Request): boolean {
+  if (req.method !== "POST") {
+    return false;
+  }
+  const methods = requestedMcpMethods(req);
+  return (
+    methods !== null && methods.every((method) => PUBLIC_MCP_METHODS.has(method))
+  );
+}
+
+type McpAuthOutcome =
+  | { status: "authenticated"; credential: AuthenticatedCredential }
+  | { status: "anonymous" }
+  | { status: "handled" };
+
 async function authenticateMcpRequest(
   req: express.Request,
   res: express.Response,
-  credentialValidator: CredentialValidator
-): Promise<AuthenticatedCredential | null> {
+  credentialValidator: CredentialValidator,
+  allowAnonymous: boolean
+): Promise<McpAuthOutcome> {
   const credential = extractCredential(req);
   if (!credential) {
+    if (allowAnonymous) {
+      return { status: "anonymous" };
+    }
     challenge(
       res,
       "Authentication is required. Use OAuth 2.1 discovery or provide a Search1API API key as a Bearer token."
     );
-    return null;
+    return { status: "handled" };
   }
 
+  // A presented credential is validated even on a discovery method, so an
+  // expired token still draws the OAuth challenge when a client reconnects
+  // rather than surfacing as a failed tool call later in the session.
   let authenticated: AuthenticatedCredential | null;
   try {
     authenticated = await credentialValidator(credential);
@@ -404,7 +541,7 @@ async function authenticateMcpRequest(
       },
       id: null,
     });
-    return null;
+    return { status: "handled" };
   }
 
   if (!authenticated) {
@@ -413,9 +550,9 @@ async function authenticateMcpRequest(
       "The Bearer credential is invalid or expired.",
       "invalid_token"
     );
-    return null;
+    return { status: "handled" };
   }
-  return authenticated;
+  return { status: "authenticated", credential: authenticated };
 }
 
 function installGlobalErrorLogging() {

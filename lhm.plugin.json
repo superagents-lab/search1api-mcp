@@ -4,6 +4,8 @@
   "version": "0.6.0",
   "author": "Search1API",
   "authorUrl": "https://github.com/superagents-lab",
+  "homepage": "https://github.com/superagents-lab/search1api-mcp",
+  "cloudEndpoint": "https://mcp.search1api.com/mcp",
   "category": "web-search",
   "description": "Official Search1API MCP server for web search, news search, page crawling, sitemap discovery, and trending topics. Use the hosted server with OAuth 2.1 or an API key, or run it locally with npm.",
   "localizations": [

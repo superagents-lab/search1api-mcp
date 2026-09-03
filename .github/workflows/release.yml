@@ -91,6 +91,27 @@ jobs:
             test "$RELEASE_TAG" = "v$PACKAGE_VERSION"
           fi
 
+      - name: Check whether this version is already in the Registry
+        id: registry_state
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          NAME=$(node -p "require('./server.json').name")
+          # The Registry rejects a duplicate version with a 400, so a manual
+          # re-sync of an already-published version must skip instead of fail.
+          # If the versions API itself is unreachable, fall through to publish
+          # and let the Registry decide -- an outage must not block a new
+          # release.
+          VERSIONS=$(curl -fsSL \
+            "https://registry.modelcontextprotocol.io/v0/servers/${NAME//\//%2F}/versions" \
+            2>/dev/null || echo "")
+          if [ -n "$VERSIONS" ] && echo "$VERSIONS" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);const want=process.argv[1];process.exit((j.servers||[]).some((s)=>s.server&&s.server.version===want)?0:1)})" "$VERSION"; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+            echo "$NAME@$VERSION is already in the MCP Registry; skipping publish"
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install pinned mcp-publisher
         env:
           MCP_PUBLISHER_VERSION: v1.8.0
@@ -107,7 +128,9 @@ jobs:
         run: ./mcp-publisher validate
 
       - name: Authenticate with GitHub OIDC
+        if: steps.registry_state.outputs.already_published != 'true'
         run: ./mcp-publisher login github-oidc
 
       - name: Publish to MCP Registry
+        if: steps.registry_state.outputs.already_published != 'true'
         run: ./mcp-publisher publish

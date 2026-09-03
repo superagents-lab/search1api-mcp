@@ -11,7 +11,7 @@ The official MCP server for [Search1API](https://s1.dev/?utm_source=mcp) — web
 
 - OAuth-aware clients can connect to the Remote MCP URL directly, then sign in and approve access in the browser.
 - Existing integrations can continue to use an API key from the [Search1API dashboard](https://dashboard.search1api.com).
-- Tool calls always require a credential. Tool discovery (`initialize`, `tools/list`) is answered without one, so clients and directories can inspect the server before signing in.
+- Every MCP request — including tool discovery (`initialize`, `tools/list`) — requires a credential. Unauthenticated requests draw the OAuth challenge, which is how clients trigger sign-in; pre-connect inspection is served by the static [server card](https://mcp.search1api.com/.well-known/mcp/server-card.json) instead.
 
 ## Quick Start (Remote MCP)
 
@@ -197,6 +197,7 @@ Get trending topics from popular platforms.
 
 ## Version History
 
+- v0.6.1: Bug fix — MCP discovery (`initialize`, `tools/list`, `resources/*`, `prompts/list`, `server/discover`) requires a credential again. Serving it anonymously made clients that equate "tools listed" with "signed in" show a connected state with no way to trigger the OAuth flow; the 401 challenge now answers every unauthenticated request, restoring OAuth sign-in at connect time. Directory visibility is unchanged via the static server card and registry metadata
 - v0.6.0: MCP discovery (`initialize`, `tools/list`, `resources/*`, `prompts/list`, `server/discover`) is served without a credential so clients and directories can enumerate tools before signing in; tool calls still require OAuth or an API key. Stdio mode starts without `SEARCH1API_KEY` and serves tool metadata, refusing only at call time. Malformed requests answer as JSON-RPC instead of an HTML error page
 - v0.5.4: OAuth issuer moved to `clerk.s1.dev` and is configurable with `OAUTH_AUTHORIZATION_SERVER`; MCP server card published at `/.well-known/mcp/server-card.json`; OAuth discovery documents now send cache headers
 - v0.5.3: OAuth resource and tool metadata no longer require OIDC session scopes; Smithery and Glama registry badges added

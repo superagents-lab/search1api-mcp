@@ -11,7 +11,7 @@
 
 - 支持 OAuth 的客户端可以直接连接 Remote MCP URL，然后在浏览器中登录并授权。
 - 现有集成可以继续使用从 [Search1API 仪表板](https://dashboard.search1api.com)获取的 API 密钥。
-- 工具调用始终需要凭证；工具发现（`initialize`、`tools/list`）无需凭证即可访问，便于客户端和目录站点在登录前查看服务器能力。
+- 所有 MCP 请求（包括工具发现 `initialize`、`tools/list`）都需要凭证。未认证请求会返回 OAuth 挑战，客户端借此触发登录；登录前的能力查看由静态 [server card](https://mcp.search1api.com/.well-known/mcp/server-card.json) 承担。
 
 ## 快速开始（Remote MCP）
 
@@ -194,6 +194,7 @@ npx skills add superagents-lab/search1api-cli
 
 ## 版本历史
 
+- v0.6.1: Bug fix — MCP 发现类方法（`initialize`、`tools/list`、`resources/*`、`prompts/list`、`server/discover`）重新要求凭证。匿名开放会让"能列出工具即视为已登录"的客户端显示已连接却无法触发 OAuth；现在所有未认证请求一律返回 401 挑战，恢复连接时的 OAuth 登录流程。目录侧可见性不受影响，仍由静态 server card 与 registry 元数据提供
 - v0.6.0: MCP 发现类方法（`initialize`、`tools/list`、`resources/*`、`prompts/list`、`server/discover`）无需凭证即可访问，客户端与目录站点可在登录前枚举工具；工具调用仍需 OAuth 或 API 密钥。stdio 模式在未设置 `SEARCH1API_KEY` 时也能启动并返回工具元数据，仅在调用工具时拒绝。畸形请求改为返回 JSON-RPC 而非 HTML 错误页
 - v0.5.4: OAuth 签发方切换到 `clerk.s1.dev`，可通过 `OAUTH_AUTHORIZATION_SERVER` 配置；在 `/.well-known/mcp/server-card.json` 发布 MCP server card；OAuth 发现文档增加缓存头
 - v0.5.3: OAuth 资源与工具 metadata 不再要求 OIDC 会话 scope；添加 Smithery 与 Glama 平台 badge

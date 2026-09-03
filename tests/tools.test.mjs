@@ -444,7 +444,7 @@ test("serves tool metadata over stdio without a configured API key", async (cont
   assert.match(JSON.stringify(refused), /SEARCH1API_KEY is not set/);
 });
 
-test("serves discovery anonymously but still gates tool calls", async (context) => {
+test("challenges every unauthenticated request, including discovery", async (context) => {
   let validationCalls = 0;
   const testServer = await startTestHttpServer(async (credential) => {
     validationCalls += 1;
@@ -453,43 +453,45 @@ test("serves discovery anonymously but still gates tool calls", async (context) 
 
   context.after(() => testServer.close());
 
-  const initialize = await anonymousRequest(testServer.url, {
-    jsonrpc: "2.0",
-    id: 1,
-    method: "initialize",
-    params: {
-      protocolVersion: "2025-06-18",
-      capabilities: {},
-      clientInfo: { name: "directory-scanner", version: "1.0.0" },
+  // The 401 + WWW-Authenticate challenge on the first unauthenticated request
+  // is the trigger for the client-side OAuth flow; no method may answer
+  // anonymously, or clients that equate "tools listed" with "signed in" would
+  // never start authorizing.
+  for (const body of [
+    {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: "2025-06-18",
+        capabilities: {},
+        clientInfo: { name: "directory-scanner", version: "1.0.0" },
+      },
     },
-  });
-  assert.equal(initialize.status, 200);
+    { jsonrpc: "2.0", id: 2, method: "tools/list" },
+    {
+      jsonrpc: "2.0",
+      id: 3,
+      method: "tools/call",
+      params: { name: "search", arguments: { query: "search1api" } },
+    },
+  ]) {
+    const response = await anonymousRequest(testServer.url, body);
+    assert.equal(response.status, 401, `status for ${body.method}`);
+    assert.match(
+      response.headers.get("www-authenticate") ?? "",
+      /resource_metadata=/,
+      `challenge for ${body.method}`
+    );
+    const payload = await readRpcPayload(response);
+    assert.equal(payload.error.code, -32001, `error body for ${body.method}`);
+  }
 
-  const listed = await anonymousRequest(testServer.url, {
-    jsonrpc: "2.0",
-    id: 2,
-    method: "tools/list",
-  });
-  assert.equal(listed.status, 200);
-  assert.deepEqual(
-    (await readRpcPayload(listed)).result.tools.map((tool) => tool.name),
-    EXPECTED_TOOLS
-  );
-
-  const called = await anonymousRequest(testServer.url, {
-    jsonrpc: "2.0",
-    id: 3,
-    method: "tools/call",
-    params: { name: "search", arguments: { query: "search1api" } },
-  });
-  assert.equal(called.status, 401);
-  assert.match(called.headers.get("www-authenticate") ?? "", /resource_metadata=/);
-
-  // Anonymous metadata must never cost an upstream credential check.
+  // An unauthenticated exchange must never cost an upstream credential check.
   assert.equal(validationCalls, 0);
 });
 
-test("keeps a batch containing a tool call behind authentication", async (context) => {
+test("keeps an unauthenticated batch behind authentication", async (context) => {
   const testServer = await startTestHttpServer();
 
   context.after(() => testServer.close());
@@ -505,30 +507,24 @@ test("keeps a batch containing a tool call behind authentication", async (contex
   ]);
 
   assert.equal(mixedBatch.status, 401);
+  assert.match(mixedBatch.headers.get("www-authenticate") ?? "", /resource_metadata=/);
 });
 
-test("does not treat a mismatched mcp-method header as discovery", async (context) => {
+test("serves the 2026-07-28 discovery method only with a credential", async (context) => {
   const testServer = await startTestHttpServer();
 
   context.after(() => testServer.close());
 
-  const spoofed = await anonymousRequest(
-    testServer.url,
-    { jsonrpc: "2.0", id: 1, method: "tools/list" },
-    { "mcp-method": "tools/call" }
+  const challenged = await discoverRequest(testServer.url, { anonymous: true });
+  assert.equal(challenged.status, 401);
+  assert.match(
+    challenged.headers.get("www-authenticate") ?? "",
+    /resource_metadata=/
   );
 
-  assert.equal(spoofed.status, 401);
-});
+  const authenticated = await discoverRequest(testServer.url);
 
-test("serves the 2026-07-28 discovery method anonymously", async (context) => {
-  const testServer = await startTestHttpServer();
-
-  context.after(() => testServer.close());
-
-  const response = await discoverRequest(testServer.url, { anonymous: true });
-
-  assert.equal(response.status, 200);
+  assert.equal(authenticated.status, 200);
 });
 
 function anonymousRequest(url, body, headers = {}) {

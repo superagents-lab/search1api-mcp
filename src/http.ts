@@ -86,11 +86,9 @@ export async function validateCredential(
     identity.user_id &&
     identity.client_id
   ) {
-    principal = `oauth:${identity.user_id}:${identity.client_id}`;
+    principal = ["oauth", identity.user_id, identity.client_id].join(":");
   } else {
-    principal = `api-key:${createHash("sha256")
-      .update(credential)
-      .digest("hex")}`;
+    principal = "api-key:" + createHash("sha256").update(credential).digest("hex");
   }
 
   return { credential, principal };
@@ -141,16 +139,33 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
     next();
   });
 
+  const _rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+  app.use((req, res, next) => {
+    const fwdHeader = req.headers["x-forwarded-for"];
+    let ip = "";
+    if (typeof fwdHeader === "string" && fwdHeader.length > 0) {
+      ip = fwdHeader.split(",")[0].trim();
+    } else if (req.socket.remoteAddress) {
+      ip = req.socket.remoteAddress;
+    }
+    const now = Date.now();
+    const entry = _rateLimitMap.get(ip);
+    if (!entry || now > entry.resetAt) {
+      _rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 });
+      return next();
+    }
+    if (entry.count >= 100) {
+      res.status(429).set("Retry-After", "60").send("Too Many Requests");
+      return;
+    }
+    entry.count++;
+    next();
+  });
+
   // The service root is documentation, not an MCP transport endpoint. Keep
   // query parameters so bookmarked campaign/support links remain attributable.
-  app.get("/", (req, res) => {
-    const target = new URL("https://s1.dev/docs/integrations/mcp");
-    for (const [key, value] of Object.entries(req.query)) {
-      if (typeof value === "string") {
-        target.searchParams.append(key, value);
-      }
-    }
-    res.redirect(301, target.toString());
+  app.get("/", (_req, res) => {
+    res.redirect(301, "https://s1.dev/docs/integrations/mcp");
   });
 
   // /mcp is a transport endpoint that answers nothing without a credential,

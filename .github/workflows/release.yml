@@ -59,9 +59,14 @@ jobs:
   # Needs the npm package to exist first, so it can verify the published
   # version matches the manifests. Chained after publish (which itself waits
   # on the npm environment approval), it can no longer race the npm release
-  # the way the old standalone mcp-registry.yml did.
+  # the way the old standalone mcp-registry.yml did. A skipped publish means
+  # a workflow_dispatch re-sync: run it as long as verify passed.
   registry:
-    needs: publish
+    needs: [verify, publish]
+    if: >-
+      !cancelled() &&
+      needs.verify.result == 'success' &&
+      (needs.publish.result == 'success' || needs.publish.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

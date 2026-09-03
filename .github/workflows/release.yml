@@ -3,6 +3,7 @@ name: Release
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   verify:
@@ -20,6 +21,7 @@ jobs:
       - run: npm test
       - run: npm pack --dry-run
       - name: Verify release tag
+        if: github.event_name == 'release'
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: >-
@@ -29,6 +31,7 @@ jobs:
 
   publish:
     needs: verify
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
     environment:
       name: npm
@@ -52,3 +55,54 @@ jobs:
           else
             npm publish
           fi
+
+  # Needs the npm package to exist first, so it can verify the published
+  # version matches the manifests. Chained after publish (which itself waits
+  # on the npm environment approval), it can no longer race the npm release
+  # the way the old standalone mcp-registry.yml did.
+  registry:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify release metadata and npm package
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          SERVER_VERSION=$(node -p "require('./server.json').version")
+          NPM_VERSION=$(npm view "search1api-mcp@$PACKAGE_VERSION" version)
+
+          test "$SERVER_VERSION" = "$PACKAGE_VERSION"
+          test "$NPM_VERSION" = "$PACKAGE_VERSION"
+
+          if [ "$GITHUB_EVENT_NAME" = "release" ]; then
+            test "$RELEASE_TAG" = "v$PACKAGE_VERSION"
+          fi
+
+      - name: Install pinned mcp-publisher
+        env:
+          MCP_PUBLISHER_VERSION: v1.8.0
+          MCP_PUBLISHER_SHA256: 1370446bbe74d562608e8005a6ccce02d146a661fbd78674e11cc70b9618d6cf
+        run: |
+          set -euo pipefail
+          curl -fsSLo mcp-publisher.tar.gz \
+            "https://github.com/modelcontextprotocol/registry/releases/download/$MCP_PUBLISHER_VERSION/mcp-publisher_linux_amd64.tar.gz"
+          echo "$MCP_PUBLISHER_SHA256  mcp-publisher.tar.gz" | sha256sum --check
+          tar xzf mcp-publisher.tar.gz mcp-publisher
+          chmod +x mcp-publisher
+
+      - name: Validate Registry metadata
+        run: ./mcp-publisher validate
+
+      - name: Authenticate with GitHub OIDC
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish to MCP Registry
+        run: ./mcp-publisher publish

@@ -45,7 +45,7 @@
     {
       "name": "search",
       "title": "Search the web",
-      "description": "Search the live public web when the user needs current information, sources, or research. Returns citable results with id, title, URL, and text. Pass a result URL to crawl to retrieve the full page.",
+      "description": "Search the live public web when the user needs current information, sources, or research. Returns citable results with id, title, URL, and text. Each result includes a URL that can be read in full.",
       "securitySchemes": [
         {
           "type": "oauth2",

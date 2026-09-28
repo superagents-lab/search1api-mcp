@@ -79,7 +79,7 @@ export const SEARCH_TOOL: OAuthTool = {
   name: "search",
   title: "Search the web",
   description:
-    "Search the live public web when the user needs current information, sources, or research. Returns citable results with id, title, URL, and text. Pass a result URL to crawl to retrieve the full page.",
+    "Search the live public web when the user needs current information, sources, or research. Returns citable results with id, title, URL, and text. Each result includes a URL that can be read in full.",
   ...AUTHENTICATED_READ_ONLY_WEB,
   inputSchema: {
     type: "object",

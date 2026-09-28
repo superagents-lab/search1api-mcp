@@ -3,9 +3,20 @@
   "displayName": "Search1API",
   "version": "1.0.0",
   "description": "Search the live web, read full pages, follow the news, map a site's links, and see what's trending, with every answer backed by citable sources.",
-  "author": { "name": "Search1API", "url": "https://s1.dev" },
+  "author": {
+    "name": "Search1API",
+    "url": "https://s1.dev"
+  },
   "homepage": "https://s1.dev/docs/integrations/mcp",
   "repository": "https://github.com/superagents-lab/search1api-mcp",
   "license": "MIT",
-  "keywords": ["search", "web", "research", "news", "crawl", "citations"]
+  "keywords": [
+    "search",
+    "web",
+    "research",
+    "news",
+    "crawl",
+    "citations"
+  ],
+  "privacyPolicyUrl": "https://s1.dev/privacy"
 }

@@ -206,7 +206,7 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
           title: tool.title,
           description: tool.description,
           inputSchema: tool.inputSchema,
-          annotations: tool.annotations,
+          annotations: { ...tool.annotations, title: tool.title },
         })),
         serverInfo: {
           name: "Search1API",

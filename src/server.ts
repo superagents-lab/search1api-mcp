@@ -61,7 +61,7 @@ export function createMcpServer(credential?: CredentialProvider): McpServer {
         description: tool.description,
         inputSchema,
         ...(outputSchema ? { outputSchema } : {}),
-        annotations: tool.annotations,
+        annotations: { ...tool.annotations, title: tool.title },
         _meta: tool._meta,
       },
       async (args) => {

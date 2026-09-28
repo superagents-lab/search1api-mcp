@@ -7,7 +7,7 @@
     "name": "Search1API",
     "url": "https://s1.dev"
   },
-  "homepage": "https://s1.dev/docs/integrations/mcp",
+  "homepage": "https://s1.dev",
   "repository": "https://github.com/superagents-lab/search1api-mcp",
   "license": "MIT",
   "keywords": [
@@ -18,5 +18,8 @@
     "crawl",
     "citations"
   ],
-  "privacyPolicyUrl": "https://s1.dev/privacy"
+  "privacyPolicyUrl": "https://s1.dev/privacy",
+  "documentationUrl": "https://s1.dev/docs/integrations/mcp",
+  "supportUrl": "https://s1.dev/contact",
+  "termsOfServiceUrl": "https://blog.s1.dev/pages/terms"
 }

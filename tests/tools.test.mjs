@@ -358,6 +358,22 @@ test("tells crawlers to skip the transport host", async (context) => {
   assert.match(body, /^Allow: \/\.well-known\/$/m);
 });
 
+test("serves the OpenAI domain verification token without a credential", async (context) => {
+  const testServer = await startTestHttpServer();
+
+  context.after(() => testServer.close());
+
+  const response = await fetch(
+    new URL("/.well-known/openai-apps-challenge", testServer.url)
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(
+    await response.text(),
+    "edGbvSAg00ELU99x45v2SjrDPJNLa1gPwjuvlflUJnM"
+  );
+});
+
 test("rejects retired or unknown tools before making an API request", async () => {
   for (const toolName of ["fetch", "reasoning"]) {
     await assert.rejects(

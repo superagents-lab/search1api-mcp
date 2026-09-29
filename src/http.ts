@@ -29,6 +29,9 @@ const API_BASE_URL =
 const DEFAULT_AUTHORIZATION_SERVER = "https://clerk.s1.dev";
 const OAUTH_DISCOVERY_CACHE_CONTROL = "public, max-age=60, s-maxage=60";
 const MCP_RESOURCE = "https://mcp.search1api.com/mcp";
+// Public by design: the OpenAI Platform reads it to verify that we own this
+// host before listing the plugin.
+const OPENAI_APPS_CHALLENGE_TOKEN = "edGbvSAg00ELU99x45v2SjrDPJNLa1gPwjuvlflUJnM";
 const MCP_RESOURCE_METADATA =
   "https://mcp.search1api.com/.well-known/oauth-protected-resource/mcp";
 
@@ -162,6 +165,10 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
       .send(
         ["User-agent: *", "Disallow: /", "Allow: /.well-known/", ""].join("\n")
       );
+  });
+
+  app.get("/.well-known/openai-apps-challenge", (_req, res) => {
+    res.type("text/plain").send(OPENAI_APPS_CHALLENGE_TOKEN);
   });
 
   // OIDC scopes such as openid and offline_access belong to the client/AS

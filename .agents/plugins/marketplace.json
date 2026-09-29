@@ -1,0 +1,20 @@
+{
+  "name": "superagents-lab",
+  "interface": {
+    "displayName": "Search1API"
+  },
+  "plugins": [
+    {
+      "name": "search1api",
+      "source": {
+        "source": "local",
+        "path": "./codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

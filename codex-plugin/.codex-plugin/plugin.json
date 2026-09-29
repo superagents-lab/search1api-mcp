@@ -1,0 +1,47 @@
+{
+  "name": "search1api",
+  "version": "1.1.0",
+  "description": "Search the live web, read full pages, follow the news, map a site's links, and see what's trending, with every answer backed by citable sources.",
+  "author": {
+    "name": "Search1API",
+    "url": "https://s1.dev"
+  },
+  "homepage": "https://s1.dev/docs/integrations/mcp",
+  "repository": "https://github.com/superagents-lab/search1api-mcp",
+  "license": "MIT",
+  "keywords": [
+    "search",
+    "web",
+    "research",
+    "news",
+    "crawl",
+    "citations"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Search1API",
+    "shortDescription": "Search the web, read pages, and track news",
+    "longDescription": "Research the live web across multiple search and news sources, read full pages from any URL, map a site's links, and see what's trending on GitHub and Hacker News. Answers cite their sources.",
+    "developerName": "Search1API",
+    "category": "Productivity",
+    "capabilities": [
+      "Web search",
+      "News search",
+      "Web page retrieval",
+      "Sitemap discovery",
+      "Trending topics"
+    ],
+    "websiteURL": "https://s1.dev",
+    "privacyPolicyURL": "https://s1.dev/privacy",
+    "termsOfServiceURL": "https://blog.s1.dev/pages/terms",
+    "defaultPrompt": [
+      "Research the latest on a topic and cite sources.",
+      "Read this URL and summarize the key points.",
+      "Find this week's news about a company."
+    ],
+    "brandColor": "#007BFF",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
+}

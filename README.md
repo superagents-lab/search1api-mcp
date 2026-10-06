@@ -1,6 +1,6 @@
 # Search1API MCP Server
 
-[![smithery badge](https://smithery.ai/badge/superagents-lab/search1api-mcp)](https://smithery.ai/servers/superagents-lab/search1api-mcp)
+[![Smithery](https://img.shields.io/badge/Smithery-listed-6C5CE7)](https://smithery.ai/servers/superagents-lab/search1api-mcp)
 [![Glama](https://img.shields.io/badge/Glama-listed-6C5CE7)](https://glama.ai/mcp/servers/superagents-lab/search1api-mcp)
 
 [中文文档](./README_zh.md)
@@ -146,9 +146,7 @@ omit `Origin` and do not require an entry.
 ## Tools
 
 ### search
-Search the web using Search1API. Results include a citable
-`id`/`title`/`url` structure. Pass a result URL to `crawl` when you need the
-full page.
+Search the web using Search1API. Results include a citable `id`/`title`/`url` structure. Pass a result URL to `crawl` when you need the full page.
 
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|

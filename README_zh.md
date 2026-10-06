@@ -1,6 +1,6 @@
 # Search1API MCP 服务
 
-[![smithery badge](https://smithery.ai/badge/superagents-lab/search1api-mcp)](https://smithery.ai/servers/superagents-lab/search1api-mcp)
+[![Smithery](https://img.shields.io/badge/Smithery-listed-6C5CE7)](https://smithery.ai/servers/superagents-lab/search1api-mcp)
 [![Glama](https://img.shields.io/badge/Glama-listed-6C5CE7)](https://glama.ai/mcp/servers/superagents-lab/search1api-mcp)
 
 [English](./README.md)
@@ -144,8 +144,7 @@ npx skills add superagents-lab/search1api-cli
 ## 工具
 
 ### search
-搜索网页。结果包含可引用的 `id`/`title`/`url` 结构。需要完整网页时，
-将结果 URL 传给 `crawl`。
+搜索网页。结果包含可引用的 `id`/`title`/`url` 结构。需要完整网页时，将结果 URL 传给 `crawl`。
 
 | 参数 | 必需 | 默认值 | 说明 |
 |------|------|--------|------|

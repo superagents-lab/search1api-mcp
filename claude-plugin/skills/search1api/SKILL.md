@@ -10,12 +10,13 @@ Live web research through the Search1API connector bundled with this plugin.
 
 ## Tools
 
-The connector exposes five read-only tools. The host may prefix their names
+The connector exposes six read-only tools. The host may prefix their names
 (for example `search1api:search`); the final names are:
 
 | User intent | Tool |
 |---|---|
 | Search the web | `search` |
+| Find the best sources when you don't know where to look | `ask` |
 | Find recent news or coverage | `news` |
 | Read a page the user shared, or the full page behind a result | `crawl` |
 | Explore the links on a site or page | `sitemap` |
@@ -34,6 +35,17 @@ at https://s1.dev include free credits.
   events), then `crawl` the most relevant results when snippets aren't enough.
 - The user asks how a site is organized or what pages it has → `sitemap`.
 
+## Search or ask?
+
+- You know the engine and keywords (a plain web lookup, "on Reddit", "GitHub
+  repos") → `search`. It costs 1 credit and returns that engine's ranking.
+- The question spans communities or sources and you would otherwise run several
+  searches ("what are developers saying about X this month", "recent papers and
+  discussion on Y") → `ask` with the user's request in natural language. It
+  picks up to five engines and a time window, drops off-topic results, and
+  returns at most 10. It costs 5 credits, so don't use it for a quick lookup.
+  `intent` in the result shows which engines and window were used.
+
 ## Tune the parameters to the request
 
 Don't call every tool with defaults. Match the request:
@@ -42,25 +54,33 @@ Don't call every tool with defaults. Match the request:
 - **Research** ("research X", "compare", "comprehensive") → `max_results: 10–15`,
   then `crawl` the 3–5 most relevant results before answering.
 - **User asks for a number** ("find 10 articles") → set `max_results` to it.
-- **Recency** ("latest", "this week", "today") → `time_range: "day"` or
-  `"month"`. For breaking news use `news` with `time_range: "day"`.
+- **Recency** ("latest", "this week", "today") → `time_range: "day"`,
+  `"week"`, or `"month"`. For breaking news use `news` with `time_range: "day"`.
 - **Source intent** ("on Reddit", "GitHub repos", "papers", "videos") → set
   `search_service` to `reddit`, `github`, `arxiv`, `youtube`, and so on. Leave
   it unset otherwise.
 - **Site scope** ("only from arxiv.org", "not from Medium") → `include_sites` /
   `exclude_sites` with bare domains.
-- **Chinese queries** → `google` or `bing` for general results, `wechat` for
-  WeChat articles, `bilibili` for Bilibili videos.
+- **Chinese queries** → `google` or `bing` for general results, `bingcn` for
+  mainland-China web results, `wechat` for WeChat articles, `bilibili` for
+  Bilibili videos.
+- **Russian-language queries** → `yandex`.
+- **Encyclopedia lookups** → `wikipedia`, or `grokipedia` with an English
+  query. When the answer uses Grokipedia results, note "Powered by xAI".
+- **More results from the same engine** → `page: 2` and up, on `bing`, `bingcn`,
+  `baidu`, and `grokipedia` only.
 
-`search_service` values for `search`: google, bing, duckduckgo, yahoo, x,
-reddit, github, youtube, arxiv, wechat, bilibili, imdb, wikipedia.
+`search_service` values for `search`: google, bing, bingcn, duckduckgo, yahoo,
+yandex, x, reddit, github, youtube, arxiv, wechat, bilibili, imdb, wikipedia,
+grokipedia.
 For `news`: google, bing, duckduckgo, yahoo, hackernews.
 For `trending`: github, hackernews.
 
 ### Credits
 
 Each `search` or `news` call costs 1 credit, plus 1 per page when
-`crawl_results` is above 0. Each `crawl` costs 1 credit. Prefer a few targeted
+`crawl_results` is above 0. Each `crawl` costs 1 credit. Each `ask` costs 5
+credits. Prefer a few targeted
 `crawl` calls on the best results over a large `crawl_results` value.
 
 ## Answer with sources
@@ -70,7 +90,8 @@ Each `search` or `news` call costs 1 credit, plus 1 per page when
    text.
 3. Say when sources disagree, and prefer primary sources (official docs,
    papers, the project's own site) over aggregators.
-4. For time-sensitive topics, state how recent the sources are.
+4. For time-sensitive topics, state how recent the sources are; results carry
+   `published_date` in their metadata when the source exposes one.
 5. If the results don't answer the question, say so and suggest a narrower or
    differently worded search instead of guessing.
 

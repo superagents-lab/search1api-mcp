@@ -2,6 +2,7 @@ import { NewsArgs, NewsResponse, isValidNewsArgs } from '../types.js';
 import { makeRequest } from '../api.js';
 import { formatError, log } from '../utils.js';
 import { API_CONFIG } from '../config.js';
+import { resultMetadata } from './search.js';
 import {
   INVALID_PARAMS,
   ProtocolError,
@@ -33,10 +34,7 @@ export async function handleNews(
       title: result.title,
       url: result.link,
       text: result.content || result.snippet,
-      metadata: {
-        snippet: result.snippet,
-        ...(result.content ? { has_full_content: true } : {}),
-      },
+      metadata: resultMetadata(result),
     }));
     const structuredContent = { results };
 

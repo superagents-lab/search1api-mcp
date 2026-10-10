@@ -150,14 +150,17 @@ npx skills add superagents-lab/search1api-cli
 |------|------|--------|------|
 | `query` | 是 | - | 搜索关键词 |
 | `max_results` | 否 | 10 | 返回结果数量 |
-| `search_service` | 否 | google | google、bing、duckduckgo、yahoo、x、reddit、github、youtube、arxiv、wechat、bilibili、imdb、wikipedia |
+| `search_service` | 否 | google | google、bing、bingcn、duckduckgo、yahoo、yandex、x、reddit、github、youtube、arxiv、wechat、bilibili、imdb、wikipedia、grokipedia |
+| `page` | 否 | 1 | 结果页码（1-100）；仅 bing、bingcn、baidu、grokipedia 支持翻页 |
 | `crawl_results` | 否 | 0 | 抓取完整内容的顶部结果数量；每个成功抓取的页面会在搜索请求基础 1 积分之外增加 1 积分 |
 | `include_sites` | 否 | [] | 限定搜索的网站 |
 | `exclude_sites` | 否 | [] | 排除的网站 |
-| `time_range` | 否 | - | day、month、year |
+| `time_range` | 否 | - | day、week、month、year |
+
+引擎提供发布时间时，结果的 `metadata` 包含 `published_date`；`github` 结果另含 `kind`、`stars`、`language`、`num_comments`。
 
 ### news
-搜索新闻。
+搜索新闻。`hackernews` 结果链接到讨论帖，并在 `metadata` 中附带 `story_url`、`points`、`num_comments`。
 
 | 参数 | 必需 | 默认值 | 说明 |
 |------|------|--------|------|
@@ -167,7 +170,7 @@ npx skills add superagents-lab/search1api-cli
 | `crawl_results` | 否 | 0 | 抓取完整内容的顶部结果数量；每个成功抓取的页面会在新闻请求基础 1 积分之外增加 1 积分 |
 | `include_sites` | 否 | [] | 限定搜索的网站 |
 | `exclude_sites` | 否 | [] | 排除的网站 |
-| `time_range` | 否 | - | day、month、year |
+| `time_range` | 否 | - | day、week、month、year |
 
 ### crawl
 提取网页内容。
@@ -191,7 +194,16 @@ npx skills add superagents-lab/search1api-cli
 | `search_service` | 是 | - | github、hackernews |
 | `max_results` | 否 | 10 | 返回数量 |
 
+### ask
+智能搜索：用自然语言描述需求，Search1API 会选择最多五个引擎和时间范围，过滤不相关的结果，按相关度返回最多 10 条可引用结果。结果还包含 `intent`（实际使用的关键词、引擎和时间范围）和 `errors`（其他引擎完成时失败的引擎）。每次成功请求消耗 5 积分；已知要用哪个引擎时请用 `search`。
+
+| 参数 | 必需 | 说明 |
+|------|------|------|
+| `query` | 是 | 自然语言描述的需求，最多 500 字符 |
+
 ## 版本历史
+
+- v0.7.0: 新增智能搜索工具 `ask`。`search` 新增 `bingcn`、`yandex`、`grokipedia` 引擎和 `page` 参数；`search` 与 `news` 支持 `time_range: "week"`，并在结果 `metadata` 中透传 `published_date` 以及 GitHub、Hacker News 字段
 
 - v0.6.1: Bug fix — MCP 发现类方法（`initialize`、`tools/list`、`resources/*`、`prompts/list`、`server/discover`）重新要求凭证。匿名开放会让"能列出工具即视为已登录"的客户端显示已连接却无法触发 OAuth；现在所有未认证请求一律返回 401 挑战，恢复连接时的 OAuth 登录流程。目录侧可见性不受影响，仍由静态 server card 与 registry 元数据提供
 - v0.6.0: MCP 发现类方法（`initialize`、`tools/list`、`resources/*`、`prompts/list`、`server/discover`）无需凭证即可访问，客户端与目录站点可在登录前枚举工具；工具调用仍需 OAuth 或 API 密钥。stdio 模式在未设置 `SEARCH1API_KEY` 时也能启动并返回工具元数据，仅在调用工具时拒绝。畸形请求改为返回 JSON-RPC 而非 HTML 错误页

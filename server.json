@@ -2,12 +2,12 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.superagents-lab/search1api",
   "title": "Search1API",
-  "description": "Web search, news, page retrieval, sitemaps, and trending topics through Search1API.",
+  "description": "Web search, agentic search, news, page retrieval, sitemaps, and trending topics through Search1API.",
   "repository": {
     "url": "https://github.com/superagents-lab/search1api-mcp",
     "source": "github"
   },
-  "version": "0.6.1",
+  "version": "0.7.0",
   "remotes": [
     {
       "type": "streamable-http",
@@ -18,7 +18,7 @@
     {
       "registryType": "npm",
       "identifier": "search1api-mcp",
-      "version": "0.6.1",
+      "version": "0.7.0",
       "transport": {
         "type": "stdio"
       },

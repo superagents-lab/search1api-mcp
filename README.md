@@ -152,14 +152,17 @@ Search the web using Search1API. Results include a citable `id`/`title`/`url` st
 |-----------|----------|---------|-------------|
 | `query` | Yes | - | Search query |
 | `max_results` | No | 10 | Number of results |
-| `search_service` | No | google | google, bing, duckduckgo, yahoo, x, reddit, github, youtube, arxiv, wechat, bilibili, imdb, wikipedia |
+| `search_service` | No | google | google, bing, bingcn, duckduckgo, yahoo, yandex, x, reddit, github, youtube, arxiv, wechat, bilibili, imdb, wikipedia, grokipedia |
+| `page` | No | 1 | Results page (1-100); only bing, bingcn, baidu, and grokipedia paginate |
 | `crawl_results` | No | 0 | Number of top results to crawl for full content; each successful crawl adds 1 credit to the base 1-credit search request |
 | `include_sites` | No | [] | Sites to include |
 | `exclude_sites` | No | [] | Sites to exclude |
-| `time_range` | No | - | day, month, year |
+| `time_range` | No | - | day, week, month, year |
+
+Results carry `published_date` in `metadata` when the engine exposes one; `github` results add `kind`, `stars`, `language`, and `num_comments`.
 
 ### news
-Search for news articles.
+Search for news articles. `hackernews` results link to the discussion thread and add `story_url`, `points`, and `num_comments` to `metadata`.
 
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
@@ -169,7 +172,7 @@ Search for news articles.
 | `crawl_results` | No | 0 | Number of top results to crawl for full content; each successful crawl adds 1 credit to the base 1-credit news request |
 | `include_sites` | No | [] | Sites to include |
 | `exclude_sites` | No | [] | Sites to exclude |
-| `time_range` | No | - | day, month, year |
+| `time_range` | No | - | day, week, month, year |
 
 ### crawl
 Extract content from a URL.
@@ -193,7 +196,16 @@ Get trending topics from popular platforms.
 | `search_service` | Yes | - | github, hackernews |
 | `max_results` | No | 10 | Number of items |
 
+### ask
+Agentic search: describe the need in natural language and Search1API picks up to five engines and a time window, drops off-topic results, and returns at most 10 citable results ranked by relevance. The result also carries `intent` (keywords, engines, and window used) and `errors` (engines that failed while others completed). Costs 5 credits per completed request; use `search` when you already know the engine.
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `query` | Yes | The request in natural language, up to 500 characters |
+
 ## Version History
+
+- v0.7.0: New `ask` tool for agentic search. `search` adds the `bingcn`, `yandex`, and `grokipedia` engines and a `page` parameter; `search` and `news` accept `time_range: "week"` and pass `published_date`, GitHub, and Hacker News fields through in result `metadata`
 
 - v0.6.1: Bug fix — MCP discovery (`initialize`, `tools/list`, `resources/*`, `prompts/list`, `server/discover`) requires a credential again. Serving it anonymously made clients that equate "tools listed" with "signed in" show a connected state with no way to trigger the OAuth flow; the 401 challenge now answers every unauthenticated request, restoring OAuth sign-in at connect time. Directory visibility is unchanged via the static server card and registry metadata
 - v0.6.0: MCP discovery (`initialize`, `tools/list`, `resources/*`, `prompts/list`, `server/discover`) is served without a credential so clients and directories can enumerate tools before signing in; tool calls still require OAuth or an API key. Stdio mode starts without `SEARCH1API_KEY` and serves tool metadata, refusing only at call time. Malformed requests answer as JSON-RPC instead of an HTML error page

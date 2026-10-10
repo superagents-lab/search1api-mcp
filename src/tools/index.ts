@@ -99,7 +99,14 @@ export const SEARCH_TOOL: OAuthTool = {
         type: "string",
         description: "Search engine to use; choose one only when it matches the user's source intent",
         default: "google",
-        enum: ["google", "bing", "duckduckgo", "yahoo", "x", "reddit", "github", "youtube", "arxiv", "wechat", "bilibili", "imdb", "wikipedia"],
+        enum: ["google", "bing", "bingcn", "duckduckgo", "yahoo", "yandex", "x", "reddit", "github", "youtube", "arxiv", "wechat", "bilibili", "imdb", "wikipedia", "grokipedia"],
+      },
+      page: {
+        type: "number",
+        minimum: 1,
+        maximum: 100,
+        description: "Results page to fetch; only bing, bingcn, baidu, and grokipedia paginate, other engines ignore it",
+        default: 1,
       },
       crawl_results: {
         type: "number",
@@ -126,7 +133,7 @@ export const SEARCH_TOOL: OAuthTool = {
       time_range: {
         type: "string",
         description: "Optional recency window for time-sensitive searches",
-        enum: ["day", "month", "year"],
+        enum: ["day", "week", "month", "year"],
       },
     },
     required: ["query"],
@@ -186,7 +193,7 @@ export const NEWS_TOOL: OAuthTool = {
       time_range: {
         type: "string",
         description: "Optional recency window; use day for breaking news",
-        enum: ["day", "month", "year"],
+        enum: ["day", "week", "month", "year"],
       },
     },
     required: ["query"],
@@ -300,10 +307,66 @@ export const TRENDING_TOOL: OAuthTool = {
   },
 };
 
+// Ask tool definition
+export const ASK_TOOL: OAuthTool = {
+  name: "ask",
+  title: "Ask across the right sources",
+  description:
+    "Describe what you are looking for in natural language when you do not know which source to search. Search1API picks up to five engines (web, Hacker News, Reddit, GitHub, X, arXiv, Wikipedia, and more), infers a time window from phrases such as \"this week\", and returns at most 10 relevant results ranked by relevance. Costs 5 credits; use search when you already know the engine.",
+  ...AUTHENTICATED_READ_ONLY_WEB,
+  inputSchema: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        maxLength: 500,
+        description: "The request in natural language; platform hints (\"on Reddit\", \"papers\") and time hints (\"this week\") steer the search",
+      },
+    },
+    required: ["query"],
+  },
+  outputSchema: {
+    type: "object",
+    properties: {
+      intent: {
+        type: "object",
+        description: "Keywords, engines, and time window that were used",
+        properties: {
+          search_query: { type: "string" },
+          sources: { type: "array", items: { type: "string" } },
+          time_range: {
+            type: ["string", "null"],
+            enum: ["day", "week", "month", "year", null],
+          },
+        },
+        required: ["search_query", "sources", "time_range"],
+      },
+      results: {
+        type: "array",
+        items: CITABLE_RESULT_SCHEMA,
+      },
+      errors: {
+        type: "array",
+        description: "Engines that failed while others completed",
+        items: {
+          type: "object",
+          properties: {
+            source: { type: "string" },
+            message: { type: "string" },
+          },
+          required: ["source", "message"],
+        },
+      },
+    },
+    required: ["intent", "results", "errors"],
+  },
+};
+
 export const ALL_TOOLS = [
   SEARCH_TOOL,
   NEWS_TOOL,
   CRAWL_TOOL,
   SITEMAP_TOOL,
   TRENDING_TOOL,
+  ASK_TOOL,
 ];

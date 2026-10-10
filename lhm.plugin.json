@@ -1,16 +1,16 @@
 {
   "identifier": "fatwang2-search1api-mcp",
   "name": "Search1API MCP Server",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "author": "Search1API",
   "authorUrl": "https://github.com/superagents-lab",
   "homepage": "https://github.com/superagents-lab/search1api-mcp",
   "cloudEndpoint": "https://mcp.search1api.com/mcp",
   "category": "web-search",
-  "description": "Official Search1API MCP server for web search, news search, page crawling, sitemap discovery, and trending topics. Use the hosted server with OAuth 2.1 or an API key, or run it locally with npm.",
+  "description": "Official Search1API MCP server for web search, agentic search, news search, page crawling, sitemap discovery, and trending topics. Use the hosted server with OAuth 2.1 or an API key, or run it locally with npm.",
   "localizations": [
     {
-      "description": "Search1API 官方 MCP 服务，提供网页搜索、新闻检索、网页抓取、站点地图和热门话题能力。支持通过 OAuth 2.1 或 API Key 使用托管服务，也可通过 npm 本地运行。",
+      "description": "Search1API 官方 MCP 服务，提供网页搜索、智能搜索、新闻检索、网页抓取、站点地图和热门话题能力。支持通过 OAuth 2.1 或 API Key 使用托管服务，也可通过 npm 本地运行。",
       "locale": "zh-CN",
       "name": "Search1API MCP 服务",
       "tags": [
@@ -86,8 +86,10 @@
             "enum": [
               "google",
               "bing",
+              "bingcn",
               "duckduckgo",
               "yahoo",
+              "yandex",
               "x",
               "reddit",
               "github",
@@ -96,8 +98,16 @@
               "wechat",
               "bilibili",
               "imdb",
-              "wikipedia"
+              "wikipedia",
+              "grokipedia"
             ]
+          },
+          "page": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Results page to fetch; only bing, bingcn, baidu, and grokipedia paginate, other engines ignore it",
+            "default": 1
           },
           "crawl_results": {
             "type": "number",
@@ -126,6 +136,7 @@
             "description": "Optional recency window for time-sensitive searches",
             "enum": [
               "day",
+              "week",
               "month",
               "year"
             ]
@@ -255,6 +266,7 @@
             "description": "Optional recency window; use day for breaking news",
             "enum": [
               "day",
+              "week",
               "month",
               "year"
             ]
@@ -512,6 +524,140 @@
         },
         "required": [
           "results"
+        ]
+      }
+    },
+    {
+      "name": "ask",
+      "title": "Ask across the right sources",
+      "description": "Describe what you are looking for in natural language when you do not know which source to search. Search1API picks up to five engines (web, Hacker News, Reddit, GitHub, X, arXiv, Wikipedia, and more), infers a time window from phrases such as \"this week\", and returns at most 10 relevant results ranked by relevance. Costs 5 credits; use search when you already know the engine.",
+      "securitySchemes": [
+        {
+          "type": "oauth2",
+          "scopes": []
+        }
+      ],
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2",
+            "scopes": []
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "The request in natural language; platform hints (\"on Reddit\", \"papers\") and time hints (\"this week\") steer the search"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "intent": {
+            "type": "object",
+            "description": "Keywords, engines, and time window that were used",
+            "properties": {
+              "search_query": {
+                "type": "string"
+              },
+              "sources": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "time_range": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "day",
+                  "week",
+                  "month",
+                  "year",
+                  null
+                ]
+              }
+            },
+            "required": [
+              "search_query",
+              "sources",
+              "time_range"
+            ]
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Stable identifier for this result; for web results this is the canonical URL"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Human-readable result title"
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Canonical URL that clients can cite and users can open"
+                },
+                "text": {
+                  "type": "string",
+                  "description": "Result snippet or extracted page text when available"
+                },
+                "metadata": {
+                  "type": "object",
+                  "description": "Additional source metadata",
+                  "additionalProperties": true
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "url"
+              ]
+            }
+          },
+          "errors": {
+            "type": "array",
+            "description": "Engines that failed while others completed",
+            "items": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source",
+                "message"
+              ]
+            }
+          }
+        },
+        "required": [
+          "intent",
+          "results",
+          "errors"
         ]
       }
     }

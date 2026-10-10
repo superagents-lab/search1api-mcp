@@ -44,7 +44,8 @@ export const API_CONFIG = {
     CRAWL: '/crawl',
     SITEMAP: '/sitemap',
     NEWS: '/news',
-    TRENDING: '/trending'
+    TRENDING: '/trending',
+    ASK: '/ask'
   }
 } as const;
 

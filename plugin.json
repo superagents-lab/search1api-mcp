@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "search1api",
-  "version": "0.6.1",
-  "description": "Web search, news, page crawl, sitemap, and trending topics via Search1API.",
+  "version": "0.7.0",
+  "description": "Web search, agentic search, news, page crawl, sitemap, and trending topics via Search1API.",
   "author": {
     "name": "Search1API",
     "url": "https://s1.dev"

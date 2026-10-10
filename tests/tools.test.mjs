@@ -35,6 +35,7 @@ const EXPECTED_TOOLS = [
   "crawl",
   "sitemap",
   "trending",
+  "ask",
 ];
 
 test("exports only supported public tools", () => {
@@ -650,3 +651,122 @@ function rawHttpRequest(url, { method, headers, body }) {
     request.end(body);
   });
 }
+
+function stubFetch(context, body) {
+  const calls = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    calls.push({ url: String(url), body: JSON.parse(init.body) });
+    return new Response(JSON.stringify(body), {
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  context.after(() => {
+    globalThis.fetch = original;
+  });
+  return calls;
+}
+
+test("ask sends only the query and returns citable results with intent", async (context) => {
+  const calls = stubFetch(context, {
+    query: "What are developers saying about Bun 1.3 this month?",
+    intent: {
+      search_query: "Bun 1.3",
+      sources: ["reddit", "hackernews"],
+      time_range: "month",
+    },
+    results: [
+      {
+        title: "Bun 1.3 thoughts",
+        link: "https://news.ycombinator.com/item?id=1",
+        snippet: "Discussion",
+        source: "hackernews",
+        relevance: 0.91,
+        published_date: "2026-10-01",
+      },
+    ],
+    errors: [{ source: "reddit", message: "timeout" }],
+  });
+
+  const result = await handleToolCall("ask", {
+    query: "What are developers saying about Bun 1.3 this month?",
+    time_range: "week",
+  });
+
+  assert.equal(calls[0].url, "https://api.search1api.com/ask");
+  assert.deepEqual(calls[0].body, {
+    query: "What are developers saying about Bun 1.3 this month?",
+  });
+  assert.equal(result.isError, undefined);
+  assert.deepEqual(result.structuredContent, {
+    intent: {
+      search_query: "Bun 1.3",
+      sources: ["reddit", "hackernews"],
+      time_range: "month",
+    },
+    results: [
+      {
+        id: "https://news.ycombinator.com/item?id=1",
+        title: "Bun 1.3 thoughts",
+        url: "https://news.ycombinator.com/item?id=1",
+        text: "Discussion",
+        metadata: {
+          source: "hackernews",
+          relevance: 0.91,
+          published_date: "2026-10-01",
+        },
+      },
+    ],
+    errors: [{ source: "reddit", message: "timeout" }],
+  });
+});
+
+test("ask rejects an empty query before making an API request", async () => {
+  await assert.rejects(
+    handleToolCall("ask", { query: "  " }),
+    (error) => error instanceof ProtocolError && error.code === INVALID_PARAMS
+  );
+});
+
+test("search accepts new engines and pagination and keeps source fields", async (context) => {
+  const calls = stubFetch(context, {
+    searchParameters: { query: "bun", search_service: "github", max_results: 1 },
+    results: [
+      {
+        title: "oven-sh/bun",
+        link: "https://github.com/oven-sh/bun",
+        snippet: "Incredibly fast JavaScript runtime",
+        published_date: "2021-04-14T00:00:00Z",
+        kind: "repo",
+        stars: 80000,
+        language: "Zig",
+      },
+    ],
+  });
+
+  for (const search_service of ["bingcn", "yandex", "grokipedia"]) {
+    await handleToolCall("search", { query: "bun", search_service, page: 2 });
+  }
+  const result = await handleToolCall("search", {
+    query: "bun",
+    search_service: "github",
+    time_range: "week",
+  });
+
+  assert.deepEqual(
+    calls.map((call) => call.body.search_service),
+    ["bingcn", "yandex", "grokipedia", "github"]
+  );
+  assert.equal(calls[0].body.page, 2);
+  assert.deepEqual(result.structuredContent.results[0].metadata, {
+    snippet: "Incredibly fast JavaScript runtime",
+    published_date: "2021-04-14T00:00:00Z",
+    kind: "repo",
+    stars: 80000,
+    language: "Zig",
+  });
+  await assert.rejects(
+    handleToolCall("search", { query: "bun", page: 0 }),
+    (error) => error instanceof ProtocolError && error.code === INVALID_PARAMS
+  );
+});

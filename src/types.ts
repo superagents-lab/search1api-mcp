@@ -2,7 +2,14 @@ export interface SearchResult {
   title: string;
   link: string;
   snippet: string;
-  content?: string; 
+  content?: string;
+  published_date?: string;
+  kind?: "repo" | "issue" | "pr" | "discussion";
+  stars?: number;
+  language?: string;
+  num_comments?: number;
+  points?: number;
+  story_url?: string;
 }
 
 export interface SearchResponse {
@@ -18,8 +25,10 @@ export interface SearchResponse {
 export enum SearchService {
   GOOGLE = "google",
   BING = "bing",
+  BINGCN = "bingcn",
   DUCKDUCKGO = "duckduckgo",
   YAHOO = "yahoo",
+  YANDEX = "yandex",
   GITHUB = "github",
   YOUTUBE = "youtube",
   X = "x",
@@ -29,6 +38,7 @@ export enum SearchService {
   BILIBILI = "bilibili",
   IMDB = "imdb",
   WIKIPEDIA = "wikipedia",
+  GROKIPEDIA = "grokipedia",
 }
 
 export enum NewsService {
@@ -41,6 +51,7 @@ export enum NewsService {
 
 export enum TimeRange {
   DAY = "day",
+  WEEK = "week",
   MONTH = "month",
   YEAR = "year"
 }
@@ -48,6 +59,7 @@ export enum TimeRange {
 export interface SearchArgs {
   query: string;
   max_results?: number;
+  page?: number;
   search_service?: SearchService;
   crawl_results?: number;
   include_sites?: string[];
@@ -63,6 +75,7 @@ export function isValidSearchArgs(args: unknown): args is SearchArgs {
   const { 
     query, 
     max_results, 
+    page,
     search_service, 
     crawl_results, 
     include_sites, 
@@ -75,6 +88,10 @@ export function isValidSearchArgs(args: unknown): args is SearchArgs {
   }
 
   if (max_results !== undefined && (typeof max_results !== 'number' || max_results < 1 || max_results > 50)) {
+    return false;
+  }
+
+  if (page !== undefined && (!Number.isInteger(page) || page < 1 || page > 100)) {
     return false;
   }
 
@@ -160,12 +177,7 @@ export function isValidSitemapArgs(args: unknown): args is SitemapArgs {
   return true;
 }
 
-export interface NewsResult {
-  title: string;
-  link: string;
-  snippet: string;
-  content?: string; 
-}
+export type NewsResult = SearchResult;
 
 export interface NewsResponse {
   searchParameters: {
@@ -285,4 +297,38 @@ export function isValidTrendingArgs(args: unknown): args is TrendingArgs {
   }
 
   return true;
+}
+
+export interface AskResult {
+  title: string;
+  link: string;
+  snippet: string;
+  published_date?: string;
+  source: string;
+  relevance: number;
+}
+
+export interface AskResponse {
+  query: string;
+  intent: {
+    search_query: string;
+    sources: string[];
+    time_range: "day" | "week" | "month" | "year" | null;
+  };
+  results: AskResult[];
+  errors: Array<{ source: string; message: string }>;
+}
+
+export interface AskArgs {
+  query: string;
+}
+
+export function isValidAskArgs(args: unknown): args is AskArgs {
+  if (typeof args !== 'object' || args === null) {
+    return false;
+  }
+
+  const { query } = args as AskArgs;
+
+  return typeof query === 'string' && query.trim().length > 0 && query.length <= 500;
 }

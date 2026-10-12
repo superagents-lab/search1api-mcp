@@ -737,9 +737,11 @@ test("search accepts new engines and pagination and keeps source fields", async 
         link: "https://github.com/oven-sh/bun",
         snippet: "Incredibly fast JavaScript runtime",
         published_date: "2021-04-14T00:00:00Z",
-        kind: "repo",
-        stars: 80000,
-        language: "Zig",
+        metadata: {
+          kind: "repo",
+          stars: 80000,
+          language: "Zig",
+        },
       },
     ],
   });
@@ -769,4 +771,37 @@ test("search accepts new engines and pagination and keeps source fields", async 
     handleToolCall("search", { query: "bun", page: 0 }),
     (error) => error instanceof ProtocolError && error.code === INVALID_PARAMS
   );
+});
+
+test("news flattens API metadata into MCP metadata without losing zeros or dates", async (context) => {
+  stubFetch(context, {
+    searchParameters: { query: "q", search_service: "hackernews" },
+    results: [
+      {
+        title: "Thread",
+        link: "https://news.ycombinator.com/item?id=1",
+        snippet: "Discussion",
+        content: "Full discussion",
+        published_date: "2026-10-12",
+        metadata: {
+          points: 0,
+          num_comments: 0,
+          story_url: "https://example.com/article",
+          future_field: true,
+        },
+      },
+      { title: "Plain", link: "https://example.com/", snippet: "No metadata" },
+    ],
+  });
+  const result = await handleToolCall("news", { query: "q", search_service: "hackernews" });
+  assert.deepEqual(result.structuredContent.results[0].metadata, {
+    points: 0,
+    num_comments: 0,
+    story_url: "https://example.com/article",
+    future_field: true,
+    snippet: "Discussion",
+    has_full_content: true,
+    published_date: "2026-10-12",
+  });
+  assert.deepEqual(result.structuredContent.results[1].metadata, { snippet: "No metadata" });
 });

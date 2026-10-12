@@ -8,25 +8,14 @@ import {
   type CallToolResult,
 } from "@modelcontextprotocol/server";
 
-// Source fields the API adds for some engines (dates, GitHub and Hacker News
-// details). Only fields the result actually carries are copied.
-const OPTIONAL_RESULT_FIELDS = [
-  "published_date",
-  "kind",
-  "stars",
-  "language",
-  "num_comments",
-  "points",
-  "story_url",
-] as const;
-
 export function resultMetadata(result: SearchResult): Record<string, unknown> {
-  const metadata: Record<string, unknown> = { snippet: result.snippet };
+  const metadata: Record<string, unknown> = {
+    ...result.metadata,
+    snippet: result.snippet,
+  };
   if (result.content) metadata.has_full_content = true;
-  for (const field of OPTIONAL_RESULT_FIELDS) {
-    if (result[field] !== undefined && result[field] !== "") {
-      metadata[field] = result[field];
-    }
+  if (result.published_date) {
+    metadata.published_date = result.published_date;
   }
   return metadata;
 }

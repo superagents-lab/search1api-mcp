@@ -1,7 +1,7 @@
 {
   "identifier": "fatwang2-search1api-mcp",
   "name": "Search1API MCP Server",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "author": "Search1API",
   "authorUrl": "https://github.com/superagents-lab",
   "homepage": "https://github.com/superagents-lab/search1api-mcp",
@@ -10,16 +10,16 @@
   "description": "Official Search1API MCP server for web search, agentic search, news search, page crawling, sitemap discovery, and trending topics. Use the hosted server with OAuth 2.1 or an API key, or run it locally with npm.",
   "localizations": [
     {
-      "description": "Search1API 官方 MCP 服务，提供网页搜索、智能搜索、新闻检索、网页抓取、站点地图和热门话题能力。支持通过 OAuth 2.1 或 API Key 使用托管服务，也可通过 npm 本地运行。",
+      "description": "Search1API \u5b98\u65b9 MCP \u670d\u52a1\uff0c\u63d0\u4f9b\u7f51\u9875\u641c\u7d22\u3001\u667a\u80fd\u641c\u7d22\u3001\u65b0\u95fb\u68c0\u7d22\u3001\u7f51\u9875\u6293\u53d6\u3001\u7ad9\u70b9\u5730\u56fe\u548c\u70ed\u95e8\u8bdd\u9898\u80fd\u529b\u3002\u652f\u6301\u901a\u8fc7 OAuth 2.1 \u6216 API Key \u4f7f\u7528\u6258\u7ba1\u670d\u52a1\uff0c\u4e5f\u53ef\u901a\u8fc7 npm \u672c\u5730\u8fd0\u884c\u3002",
       "locale": "zh-CN",
-      "name": "Search1API MCP 服务",
+      "name": "Search1API MCP \u670d\u52a1",
       "tags": [
         "Search1API",
-        "网页搜索",
-        "新闻检索",
-        "网页抓取",
-        "站点地图",
-        "远程 MCP",
+        "\u7f51\u9875\u641c\u7d22",
+        "\u65b0\u95fb\u68c0\u7d22",
+        "\u7f51\u9875\u6293\u53d6",
+        "\u7ad9\u70b9\u5730\u56fe",
+        "\u8fdc\u7a0b MCP",
         "OAuth"
       ]
     }

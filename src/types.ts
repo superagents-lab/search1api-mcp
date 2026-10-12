@@ -1,15 +1,23 @@
+export interface SearchResultMetadata {
+  /** GitHub: result type, repository stars/language, or thread comments. */
+  kind?: "repo" | "issue" | "pr" | "discussion";
+  stars?: number;
+  language?: string;
+  /** GitHub threads and Hacker News news results. */
+  num_comments?: number;
+  /** Hacker News: votes and submitted article URL; link is the discussion. */
+  points?: number;
+  story_url?: string;
+  [key: string]: unknown;
+}
+
 export interface SearchResult {
   title: string;
   link: string;
   snippet: string;
   content?: string;
   published_date?: string;
-  kind?: "repo" | "issue" | "pr" | "discussion";
-  stars?: number;
-  language?: string;
-  num_comments?: number;
-  points?: number;
-  story_url?: string;
+  metadata?: SearchResultMetadata;
 }
 
 export interface SearchResponse {

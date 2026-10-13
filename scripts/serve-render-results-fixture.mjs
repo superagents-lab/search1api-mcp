@@ -22,7 +22,7 @@ globalThis.fetch = async (input, init) => {
 };
 const { ALL_TOOLS } = await import('../build/tools/index.js');
 // This isolated fixture has no real account. Only replace auth declarations;
-// all UI metadata, schemas, handlers and URL gating use the production build.
+// all UI metadata, schemas and handlers use the production build.
 for (const tool of ALL_TOOLS) {
   tool.securitySchemes = [{ type: 'noauth' }];
   tool._meta = { ...tool._meta, securitySchemes: [{ type: 'noauth' }] };

@@ -10,16 +10,16 @@
   "description": "Official Search1API MCP server for web search, agentic search, news search, page crawling, sitemap discovery, and trending topics. Use the hosted server with OAuth 2.1 or an API key, or run it locally with npm.",
   "localizations": [
     {
-      "description": "Search1API \u5b98\u65b9 MCP \u670d\u52a1\uff0c\u63d0\u4f9b\u7f51\u9875\u641c\u7d22\u3001\u667a\u80fd\u641c\u7d22\u3001\u65b0\u95fb\u68c0\u7d22\u3001\u7f51\u9875\u6293\u53d6\u3001\u7ad9\u70b9\u5730\u56fe\u548c\u70ed\u95e8\u8bdd\u9898\u80fd\u529b\u3002\u652f\u6301\u901a\u8fc7 OAuth 2.1 \u6216 API Key \u4f7f\u7528\u6258\u7ba1\u670d\u52a1\uff0c\u4e5f\u53ef\u901a\u8fc7 npm \u672c\u5730\u8fd0\u884c\u3002",
+      "description": "Search1API 官方 MCP 服务，提供网页搜索、智能搜索、新闻检索、网页抓取、站点地图和热门话题能力。支持通过 OAuth 2.1 或 API Key 使用托管服务，也可通过 npm 本地运行。",
       "locale": "zh-CN",
-      "name": "Search1API MCP \u670d\u52a1",
+      "name": "Search1API MCP 服务",
       "tags": [
         "Search1API",
-        "\u7f51\u9875\u641c\u7d22",
-        "\u65b0\u95fb\u68c0\u7d22",
-        "\u7f51\u9875\u6293\u53d6",
-        "\u7ad9\u70b9\u5730\u56fe",
-        "\u8fdc\u7a0b MCP",
+        "网页搜索",
+        "新闻检索",
+        "网页抓取",
+        "站点地图",
+        "远程 MCP",
         "OAuth"
       ]
     }
@@ -662,6 +662,160 @@
           "intent",
           "results",
           "errors"
+        ]
+      }
+    },
+    {
+      "name": "render_results",
+      "title": "Render the results",
+      "description": "Present already retrieved source results as source cards when the host supports UI, with a complete readable text list otherwise. Use when the user wants to browse sources or a visual list helps the task. Pass existing results in the desired order; never invent source URLs or factual titles. Does not search, crawl, fetch URLs, verify sources, or consume search credits. Do not call for intermediate research results or when a text answer is sufficient.",
+      "securitySchemes": [
+        {
+          "type": "oauth2",
+          "scopes": []
+        }
+      ],
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2",
+            "scopes": []
+          }
+        ],
+        "openai/toolInvocation/invoking": "Preparing results…",
+        "openai/toolInvocation/invoked": "Results ready"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "idempotentHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "Optional human-readable list heading. Defaults to Results."
+          },
+          "results": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 50,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2048,
+                  "description": "Copy the original result ID when available. If absent, the server uses its URL."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 300,
+                  "description": "Copy the source title; do not invent or rewrite factual source titles."
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "pattern": "^https?://",
+                  "maxLength": 2048,
+                  "description": "Absolute HTTP(S) source URL, without embedded credentials."
+                },
+                "text": {
+                  "type": "string",
+                  "maxLength": 2000,
+                  "description": "Optional source snippet or faithful excerpt, not a full page or model-written answer."
+                },
+                "metadata": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "description": "Optional original JSON source metadata. Do not put credentials or UI implementation details here."
+                }
+              },
+              "required": [
+                "title",
+                "url"
+              ]
+            },
+            "description": "Already retrieved results, in the order to display. No new search is performed."
+          }
+        },
+        "required": [
+          "results"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 50,
+            "description": "Number of results in this rendered list, not a provider-wide search total."
+          },
+          "results": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 50,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2048,
+                  "description": "Copy the original result ID when available. If absent, the server uses its URL."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 300,
+                  "description": "Copy the source title; do not invent or rewrite factual source titles."
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "pattern": "^https?://",
+                  "maxLength": 2048,
+                  "description": "Absolute HTTP(S) source URL, without embedded credentials."
+                },
+                "text": {
+                  "type": "string",
+                  "maxLength": 2000,
+                  "description": "Optional source snippet or faithful excerpt, not a full page or model-written answer."
+                },
+                "metadata": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "description": "Optional original JSON source metadata. Do not put credentials or UI implementation details here."
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "url"
+              ]
+            }
+          }
+        },
+        "required": [
+          "title",
+          "total",
+          "results"
         ]
       }
     }

@@ -1,0 +1,21 @@
+{
+  "isError": false,
+  "structuredContent": {
+    "title": "Search1API sources",
+    "total": 1,
+    "results": [
+      {
+        "id": "https://s1.dev/docs",
+        "title": "Search1API documentation",
+        "url": "https://s1.dev/docs",
+        "text": "Documentation for Search1API."
+      }
+    ]
+  },
+  "content": [
+    {
+      "type": "text",
+      "text": "Search1API sources\n\n1. Search1API documentation\nURL: https://s1.dev/docs\nSnippet: Documentation for Search1API."
+    }
+  ]
+}

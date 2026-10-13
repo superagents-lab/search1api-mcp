@@ -27,7 +27,7 @@ async function load() {
   bridge.onopenlink = async () => ({ isError: (document.getElementById('deny') as HTMLInputElement).checked });
   const current = bridge;
   current.oninitialized = async () => {
-    await current.sendToolInput({ arguments: { query: 'Synthetic test query' } });
+    await current.sendToolInput({ arguments: { results: [] } });
     const deliver = async () => {
       if (current !== bridge) return;
       if (scenario === 'slow replay') await new Promise((resolve) => setTimeout(resolve, 1200));
@@ -41,7 +41,7 @@ async function load() {
         url: `https://example.com/source/${i + 1}`, text: 'Synthetic result for layout testing.',
         ...(news && i % 4 !== 3 ? { metadata: { published_date: ['2026-10-12T08:30:00Z', 'Oct 11, 2026', '2 hours ago'][i % 4] } } : {}),
       }));
-      await current.sendToolResult({ structuredContent: { results }, content: [{ type: 'text', text: JSON.stringify({ results }) }] });
+      await current.sendToolResult({ structuredContent: { title: 'Selected sources', total: results.length, results }, content: [{ type: 'text', text: JSON.stringify({ results }) }] });
     };
     if (hold) { deliverResult = deliver; deliverButton.disabled = false; }
     else await deliver();

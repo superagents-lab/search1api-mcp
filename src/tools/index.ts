@@ -1,5 +1,6 @@
 import type { Tool } from "@modelcontextprotocol/server";
 import { SEARCH_UI_URI } from "../ui.js";
+import { RENDER_INPUT_SCHEMA, RENDER_OUTPUT_SCHEMA } from "./render-results.js";
 
 type OAuthTool = Tool & {
   securitySchemes: Array<{
@@ -144,11 +145,6 @@ export const SEARCH_TOOL: OAuthTool = {
     ...AUTHENTICATED_READ_ONLY_WEB._meta,
     "openai/toolInvocation/invoking": "Searching the web…",
     "openai/toolInvocation/invoked": "Search results",
-    ...(SEARCH_UI_URI && {
-      ui: { resourceUri: SEARCH_UI_URI },
-      // Legacy flat key for hosts that predate `_meta.ui`.
-      "ui/resourceUri": SEARCH_UI_URI,
-    }),
   },
 };
 
@@ -214,10 +210,6 @@ export const NEWS_TOOL: OAuthTool = {
     ...AUTHENTICATED_READ_ONLY_WEB._meta,
     "openai/toolInvocation/invoking": "Searching news…",
     "openai/toolInvocation/invoked": "News results",
-    ...(SEARCH_UI_URI && {
-      ui: { resourceUri: SEARCH_UI_URI },
-      "ui/resourceUri": SEARCH_UI_URI,
-    }),
   },
 };
 
@@ -382,6 +374,22 @@ export const ASK_TOOL: OAuthTool = {
   },
 };
 
+export const RENDER_RESULTS_TOOL: OAuthTool = {
+  name: "render_results",
+  title: "Render the results",
+  description: "Present already retrieved source results as source cards when the host supports UI, with a complete readable text list otherwise. Use when the user wants to browse sources or a visual list helps the task. Pass existing results in the desired order; never invent source URLs or factual titles. Does not search, crawl, fetch URLs, verify sources, or consume search credits. Do not call for intermediate research results or when a text answer is sufficient.",
+  ...AUTHENTICATED_READ_ONLY_WEB,
+  annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true },
+  inputSchema: RENDER_INPUT_SCHEMA,
+  outputSchema: RENDER_OUTPUT_SCHEMA,
+  _meta: {
+    ...AUTHENTICATED_READ_ONLY_WEB._meta,
+    "openai/toolInvocation/invoking": "Preparing results…",
+    "openai/toolInvocation/invoked": "Results ready",
+    ...(SEARCH_UI_URI && { ui: { resourceUri: SEARCH_UI_URI, visibility: ["model", "app"] } }),
+  },
+};
+
 export const ALL_TOOLS = [
   SEARCH_TOOL,
   NEWS_TOOL,
@@ -389,4 +397,5 @@ export const ALL_TOOLS = [
   SITEMAP_TOOL,
   TRENDING_TOOL,
   ASK_TOOL,
+  RENDER_RESULTS_TOOL,
 ];

@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "render_results success structuredContent",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 50,
+      "description": "Number of results in this rendered list, not a provider-wide search total."
+    },
+    "results": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "description": "Copy the original result ID when available. If absent, the server uses its URL."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "Copy the source title; do not invent or rewrite factual source titles."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https?://",
+            "maxLength": 2048,
+            "description": "Absolute HTTP(S) source URL, without embedded credentials."
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Optional source snippet or faithful excerpt, not a full page or model-written answer."
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Optional original JSON source metadata. Do not put credentials or UI implementation details here."
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "url"
+        ]
+      }
+    }
+  },
+  "required": [
+    "title",
+    "total",
+    "results"
+  ]
+}

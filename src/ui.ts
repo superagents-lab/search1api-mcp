@@ -27,8 +27,8 @@ function searchUiVersion(): string | undefined {
 export const MCP_APP_MIME_TYPE = "text/html;profile=mcp-app";
 
 /**
- * The tool without its view link, for directory listings and HTTP connections
- * that did not opt into UI. Copy metadata so shared definitions stay intact.
+ * Directory listings omit the content-hashed view link. Copy metadata so
+ * shared runtime tool definitions stay intact.
  */
 export function withoutUiMeta<T extends { _meta?: Record<string, unknown> }>(
   tool: T
@@ -65,15 +65,15 @@ export const SEARCH_UI_META = {
   // Reserve one result row initially and allow the internal toggle to shrink it.
   "openai/widgetHeightHint": 154,
   "openai/widgetMinFrameHeight": 0,
-  "openai/widgetDescription": "Search1API web and news source cards with titles, domains, and links. Shows existing results; expanding sources does not run another search.",
+  "openai/widgetDescription": "Search1API source cards with titles, domains, and links. Displays results passed to render_results; expanding sources does not run a search or consume credits.",
 };
 
 const version = searchUiVersion();
 
 /**
- * Shared search/news view. Version both HTML and metadata because hosts may
+ * Reused source-card view. Version both HTML and metadata because hosts may
  * cache the entire resource by URI, including its initial sizing hints.
- * Without a UI build, both tools fall back to their ordinary text results.
+ * Without a UI build, render_results still returns its full text list.
  */
 export const SEARCH_UI_URI: string | undefined = version
   ? `ui://search1api/web-search-${version}.html`

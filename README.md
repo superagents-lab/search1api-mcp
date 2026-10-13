@@ -31,13 +31,9 @@ Prefer OAuth or the Authorization header. Query-parameter credentials can be exp
 
 ### Optional search and news UI
 
-Remote MCP returns text and structured results by default. To enable source cards for both `search` and `news` in a client that supports MCP Apps, configure:
+Remote MCP exposes `render_results` at the standard endpoint above. Data tools such as `search`, `news` and `ask` return results without automatically showing cards. When a source list helps, the model can select or combine existing results and pass them to `render_results`. It returns source cards in MCP Apps clients and a complete readable text list elsewhere. Rendering does not repeat a search or consume search credits; no UI URL parameter is required.
 
-```text
-https://mcp.search1api.com/mcp?ui=true
-```
-
-Omitting `ui`, setting `ui=false`, or using any value other than a single lowercase `ui=true` keeps UI disabled. With a legacy query API key, use `https://mcp.search1api.com/mcp?apiKey=YOUR_SEARCH1API_KEY&ui=true`. Tool names and result data are identical in both modes; no extra display tool is added. Clients without UI support can still read the results.
+See [the rendering contract](docs/render-results.md) for arguments, limits and fallback behavior. Existing npm installations update separately when a new package version is released.
 
 After changing the URL, reconnect or refresh the connector's tool definitions; clients may cache them. This URL setting applies to Remote MCP only; local stdio behavior is unchanged. See [MCP Apps UI](docs/mcp-ui.md) for details and release status.
 
@@ -245,6 +241,6 @@ MIT
 
 ## UI and third-party credits
 
-The optional MCP Apps view for `search` and `news` shows source cards with titles and domains. Remote connections must opt in with `ui=true`. Text and structured results remain available to clients without UI support. The component is adapted from [Rare UI](https://rareui.com), by Swami Malode. Its MIT + Commons Clause + Attribution terms are reproduced in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The `render_results` MCP Apps view shows existing sources as cards with titles and domains. Every client also receives the full text and structured result list. The component is adapted from [Rare UI](https://rareui.com), by Swami Malode. Its MIT + Commons Clause + Attribution terms are reproduced in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 UI setup, sandbox origin, and release checks: [MCP Apps UI](docs/mcp-ui.md).

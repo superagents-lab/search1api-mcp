@@ -13,7 +13,6 @@ import {
   SEARCH_UI_META,
   SEARCH_UI_URI,
   readSearchUi,
-  withoutUiMeta,
 } from "./ui.js";
 import { formatError, log } from "./utils.js";
 import { PACKAGE_VERSION } from "./version.js";
@@ -42,18 +41,17 @@ export function unauthenticatedCredential(message: string): CredentialProvider {
  *
  * The v2 serving entries call this factory once per modern HTTP exchange,
  * once per stateless legacy HTTP request, or once per stdio connection.
- * Stdio advertises the built UI; HTTP explicitly opts in from its URL.
+ * All transports expose the same data tools and optional rendering tool.
  */
 export function createMcpServer(
-  credential?: CredentialProvider,
-  { enableUi = true }: { enableUi?: boolean } = {}
+  credential?: CredentialProvider
 ): McpServer {
   log("Creating Search1API MCP server");
 
-  const server = new McpServer({
-    name: "search1api-server",
-    version: PACKAGE_VERSION,
-  });
+  const server = new McpServer(
+    { name: "search1api-server", version: PACKAGE_VERSION },
+    { instructions: "Use search, news, ask, crawl, sitemap and trending to retrieve data. Call render_results with selected existing results only when the user wants to browse sources or a visual list helps. Rendering never repeats a search or consumes search credits; unsupported UI clients receive a readable text list." }
+  );
 
   for (const tool of ALL_TOOLS) {
     const inputSchema = fromJsonSchema<Record<string, unknown>>(
@@ -73,7 +71,7 @@ export function createMcpServer(
         inputSchema,
         ...(outputSchema ? { outputSchema } : {}),
         annotations: { ...tool.annotations, title: tool.title },
-        _meta: (enableUi ? tool : withoutUiMeta(tool))._meta,
+        _meta: tool._meta,
       },
       async (args) => {
         try {
@@ -115,13 +113,13 @@ export function createMcpServer(
     );
   }
 
-  if (enableUi && SEARCH_UI_URI) {
+  if (SEARCH_UI_URI) {
     server.registerResource(
       "search-ui",
       SEARCH_UI_URI,
       {
-        title: "Search results view",
-        description: "Interactive view for web and news search results",
+        title: "Source results view",
+        description: "Interactive view of already retrieved source results",
         mimeType: MCP_APP_MIME_TYPE,
         _meta: SEARCH_UI_META,
       },

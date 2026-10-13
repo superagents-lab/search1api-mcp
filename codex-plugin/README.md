@@ -7,8 +7,8 @@ trending on GitHub and Hacker News, then answer with citable sources.
 ## What's inside
 
 - **Search1API MCP server**: the remote server at
-  `https://mcp.search1api.com/mcp`, with six read-only tools: `search`,
-  `ask`, `news`, `crawl`, `sitemap`, and `trending`.
+  `https://mcp.search1api.com/mcp`, with seven read-only tools: `search`,
+  `ask`, `news`, `crawl`, `sitemap`, `trending`, and `render_results`.
 - **`search1api` skill**: tells Codex when to search versus read a link, how
   to tune the number of results, recency, source, and site filters to the
   request, and how to cite sources in the answer.

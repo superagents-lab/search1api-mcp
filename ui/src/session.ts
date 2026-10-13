@@ -5,6 +5,7 @@ export type ViewState = {
   status: "waiting" | "done" | "error" | "cancelled";
   sources: Source[];
   message?: string;
+  title?: string;
   linkError?: string;
   blockedUrl?: string;
   context?: McpUiHostContext;
@@ -50,16 +51,17 @@ export function createSearchSession(app: Bridge) {
   app.ontoolinput = () => {}; // Input does not identify live execution versus replay.
   app.ontoolresult = (result) => {
     if (result.isError) {
-      update({ status: "error", sources: [], message: "Search failed. Ask to try the search again." });
+      update({ status: "error", sources: [], message: "Results could not be prepared. Refer to the source results in the conversation." });
       return;
     }
     try {
-      update({ status: "done", sources: parseSources(result.structuredContent), message: undefined });
+      const data = result.structuredContent;
+      update({ status: "done", sources: parseSources(data), title: data && typeof data === "object" && "title" in data && typeof data.title === "string" ? data.title : undefined, message: undefined });
     } catch {
-      update({ status: "error", sources: [], message: "These results could not be displayed. Refer to the search response in the conversation." });
+      update({ status: "error", sources: [], message: "These results could not be displayed. Refer to the source results in the conversation." });
     }
   };
-  app.ontoolcancelled = () => update({ status: "cancelled", sources: [], message: "Search cancelled." });
+  app.ontoolcancelled = () => update({ status: "cancelled", sources: [], message: "Result display cancelled." });
   app.onhostcontextchanged = (context) => update({ context: { ...state.context, ...context } });
   app.onclose = () => {
     if (state.status === "waiting") update({ status: "error", message: "Connection to the host was lost. Reopen the result view." });
@@ -71,7 +73,7 @@ export function createSearchSession(app: Bridge) {
     start: () => started ??= app.connect(undefined, { timeout: 15_000 }).then(() => {
       update({ context: app.getHostContext() });
     }).catch(() => {
-      update({ status: "error", message: "Could not connect to the host. Reopen the result view; your search will not be repeated." });
+      update({ status: "error", message: "Could not connect to the host. Reopen the result view; your results remain available in the conversation." });
     }),
     openLink: async (value: string) => {
       const url = webUrl(value);

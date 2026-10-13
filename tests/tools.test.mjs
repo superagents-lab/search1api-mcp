@@ -47,6 +47,7 @@ const EXPECTED_TOOLS = [
   "sitemap",
   "trending",
   "ask",
+  "render_results",
 ];
 
 test("exports only supported public tools", () => {
@@ -95,7 +96,7 @@ test("advertises directory-ready metadata and structured outputs", () => {
     assert.equal(typeof tool.title, "string");
     assert.equal(tool.annotations?.readOnlyHint, true);
     assert.equal(tool.annotations?.destructiveHint, false);
-    assert.equal(tool.annotations?.openWorldHint, true);
+    assert.equal(tool.annotations?.openWorldHint, tool.name !== "render_results");
     assert.deepEqual(tool.securitySchemes, [
       { type: "oauth2", scopes: [] },
     ]);
@@ -474,7 +475,7 @@ test("serves tool metadata over stdio without a configured API key", async (cont
   assert.match(JSON.stringify(refused), /SEARCH1API_KEY is not set/);
 });
 
-test("links search and news to the same readable MCP Apps view, leaving crawl text-only", async (context) => {
+test("links only render_results to the readable MCP Apps view", async (context) => {
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
   const serverHandle = serveStdio(
@@ -496,11 +497,13 @@ test("links search and news to the same readable MCP Apps view, leaving crawl te
   const { tools } = await client.listTools();
   const search = tools.find((tool) => tool.name === "search");
   const news = tools.find((tool) => tool.name === "news");
-  const uri = search._meta.ui.resourceUri;
+  const renderer = tools.find((tool) => tool.name === "render_results");
+  const uri = renderer._meta.ui.resourceUri;
   assert.match(uri, /^ui:\/\/search1api\/web-search-[0-9a-f]{10}\.html$/);
-  assert.equal(search._meta["ui/resourceUri"], uri);
-  assert.equal(news._meta.ui.resourceUri, uri);
-  assert.equal(news._meta["ui/resourceUri"], uri);
+  assert.deepEqual(renderer._meta.ui.visibility, ["model", "app"]);
+  assert.equal(search._meta?.ui, undefined);
+  assert.equal(news._meta?.ui, undefined);
+  assert.equal(tools.filter(tool => tool._meta?.ui?.resourceUri).length, 1);
   assert.equal(tools.find((tool) => tool.name === "crawl")._meta?.ui, undefined);
 
   const [content] = (await client.readResource({ uri })).contents;
@@ -514,15 +517,15 @@ test("links search and news to the same readable MCP Apps view, leaving crawl te
   assert.doesNotMatch(content.text, /<script[^>]+src=|<link[^>]+rel="stylesheet"/);
 });
 
-// Exercise the real HTTP adapter and both protocol paths: the endpoint URL
-// must reach discovery, tool calls and resource reads without shared state.
+// No UI extension is negotiated by these clients. Both protocol eras must
+// receive usable rendering text without a query preference or another search.
 for (const mode of [{ pin: "2026-07-28" }, "legacy"]) {
-  test(`remote UI is opt-in and isolated across connections (${JSON.stringify(mode)})`, async (context) => {
+  test(`on-demand rendering uses the default HTTP endpoint (${JSON.stringify(mode)})`, async (context) => {
     const originalFetch = globalThis.fetch;
     const apiCalls = [];
     context.mock.method(globalThis, "fetch", async (url, init) => {
       if (String(url).startsWith("https://api.search1api.com/")) {
-        apiCalls.push({ url: String(url), body: JSON.parse(init.body), authorization: init.headers.Authorization });
+        apiCalls.push({ url: String(url), body: JSON.parse(init.body) });
         return new Response(JSON.stringify({ results: [{
           title: "Example", link: "https://example.com/", snippet: "A result",
           published_date: "2026-10-13T08:30:00Z",
@@ -533,68 +536,48 @@ for (const mode of [{ pin: "2026-07-28" }, "legacy"]) {
     const testServer = await startTestHttpServer();
     const clients = [];
     context.after(async () => {
-      await Promise.all(clients.map((client) => client.close()));
+      await Promise.all(clients.map(client => client.close()));
       await testServer.close();
     });
-    const connect = async (query) => {
-      const client = new Client(
-        { name: "remote-ui-test", version: "1.0.0" },
-        { versionNegotiation: { mode } }
-      );
+    const connect = async (query = "") => {
+      const client = new Client({ name: "headless-render-test", version: "1.0.0" }, { versionNegotiation: { mode } });
       clients.push(client);
-      const url = new URL(testServer.url);
-      url.search = query;
-      const transport = query.includes("apiKey=")
-        ? new StreamableHTTPClientTransport(url)
-        : createAuthenticatedTransport(url);
-      await client.connect(transport);
+      const url = new URL(testServer.url); url.search = query;
+      await client.connect(query.includes("apiKey=") ? new StreamableHTTPClientTransport(url) : createAuthenticatedTransport(url));
       return client;
     };
-
-    const [enabled, disabled] = await Promise.all([connect("?ui=true"), connect("")]);
-    const [onTools, offTools] = await Promise.all([enabled.listTools(), disabled.listTools()]);
-    assert.deepEqual(onTools.tools.map((tool) => tool.name), EXPECTED_TOOLS);
-    assert.deepEqual(offTools.tools, onTools.tools.map(withoutUiMeta));
-    const uri = onTools.tools.find((tool) => tool.name === "search")._meta.ui.resourceUri;
-    assert.equal(onTools.tools.find((tool) => tool.name === "news")._meta.ui.resourceUri, uri);
-    assert.equal(onTools.tools.find((tool) => tool.name === "crawl")._meta?.ui, undefined);
-    const [onResources, offResources] = await Promise.all([enabled.listResources(), disabled.listResources()]);
-    assert.ok(onResources.resources.some((resource) => resource.uri === uri));
-    assert.deepEqual(offResources.resources, onResources.resources.filter((resource) => resource.uri !== uri));
-    assert.match((await enabled.readResource({ uri })).contents[0].text, /<div id="root">/);
-    await assert.rejects(disabled.readResource({ uri }));
-
+    const client = await connect();
+    const { tools } = await client.listTools();
+    assert.deepEqual(tools.map(tool => tool.name), EXPECTED_TOOLS);
+    const uri = tools.find(tool => tool.name === "render_results")._meta.ui.resourceUri;
+    assert.equal(tools.filter(tool => tool._meta?.ui?.resourceUri).length, 1);
+    assert.ok((await client.listResources()).resources.some(resource => resource.uri === uri));
+    assert.match((await client.readResource({ uri })).contents[0].text, /<div id="root">/);
     for (const name of ["search", "news"]) {
-      const args = { name, arguments: { query: "MCP", max_results: 1 } };
-      const [withUi, withoutUi] = await Promise.all([enabled.callTool(args), disabled.callTool(args)]);
-      assert.equal(withUi.isError, undefined);
-      assert.deepEqual(withoutUi, withUi);
-      assert.deepEqual(JSON.parse(withUi.content[0].text), withUi.structuredContent);
-      assert.equal(withUi.structuredContent.results[0].title, "Example");
+      assert.equal(tools.find(tool => tool.name === name)._meta?.ui, undefined);
+      const result = await client.callTool({ name, arguments: { query: "MCP", max_results: 1 } });
+      assert.deepEqual(JSON.parse(result.content[0].text), result.structuredContent);
+      const rendered = await client.callTool({ name: "render_results", arguments: { title: "Selected sources", results: result.structuredContent.results } });
+      assert.equal(rendered.isError, false);
+      assert.deepEqual(rendered.structuredContent.results, result.structuredContent.results);
+      assert.equal(rendered.structuredContent.total, 1);
+      assert.match(rendered.content[0].text, /Selected sources/);
+      assert.match(rendered.content[0].text, /https:\/\/example.com\//);
+      assert.match(rendered.content[0].text, /A result/);
+      assert.equal("rendered" in rendered.structuredContent, false);
     }
-    assert.equal(apiCalls.length, 4);
-    assert.ok(apiCalls.every((call) => !("ui" in call.body)));
-
-    // Exact, single ui=true is the only opt-in. Existing credentials and
-    // unrelated query parameters must continue to work.
-    for (const query of ["?ui=false", "?ui=", "?ui=1", "?ui=TRUE", "?ui=invalid", "?ui=true&ui=false", "?ui=false&ui=true", "?ui=true&ui=true", "?ui[]=true", "?apiKey=test-key"]) {
-      const client = await connect(query);
-      assert.deepEqual((await client.listTools()).tools, offTools.tools, query);
-      assert.deepEqual((await client.listResources()).resources, offResources.resources, query);
+    assert.equal(apiCalls.length, 2, "rendering must not perform an API request");
+    for (const query of ["?ui=true", "?ui=false", "?apiKey=test-key"]) {
+      const other = await connect(query);
+      assert.deepEqual((await other.listTools()).tools, tools, "URL UI parameters have no effect");
+      assert.ok((await other.readResource({ uri })).contents[0].text);
     }
-    const queryKeyClient = await connect("?apiKey=test-key&ui=true");
-    assert.deepEqual((await queryKeyClient.listTools()).tools, onTools.tools);
-    // Recheck the original clients after alternating modes to catch mutation.
-    assert.deepEqual((await enabled.listTools()).tools, onTools.tools);
-    assert.deepEqual((await disabled.listTools()).tools, offTools.tools);
-
-    for (const query of ["", "?ui=true", "?ui=false"]) {
-      const url = new URL(testServer.url);
-      url.search = query;
-      const response = await anonymousRequest(url, { jsonrpc: "2.0", id: 1, method: "tools/list" });
-      assert.equal(response.status, 401);
-      assert.match(response.headers.get("www-authenticate"), /resource_metadata="https:\/\/mcp.search1api.com\/\.well-known\/oauth-protected-resource\/mcp"/);
-    }
+    const empty = await client.callTool({ name: "render_results", arguments: { results: [] } });
+    assert.deepEqual(empty.structuredContent, { title: "Results", total: 0, results: [] });
+    assert.match(empty.content[0].text, /No results to display/);
+    const anonymous = await anonymousRequest(testServer.url, { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "render_results", arguments: { results: [] } } });
+    assert.equal(anonymous.status, 401);
+    assert.match(anonymous.headers.get("www-authenticate"), /resource_metadata=/);
   });
 }
 
@@ -608,7 +591,7 @@ test("advertises no view when the UI has not been built", async (context) => {
 
   const load = (path) => import(pathToFileURL(join(copy, "build", path)).href);
   const { SEARCH_UI_URI } = await load("ui.js");
-  const { SEARCH_TOOL, NEWS_TOOL } = await load("tools/index.js");
+  const { SEARCH_TOOL, NEWS_TOOL, RENDER_RESULTS_TOOL } = await load("tools/index.js");
   const { createMcpServer: createBareServer, unauthenticatedCredential: bare } =
     await load("server.js");
 
@@ -617,6 +600,7 @@ test("advertises no view when the UI has not been built", async (context) => {
   assert.equal(SEARCH_TOOL._meta["ui/resourceUri"], undefined);
   assert.equal(NEWS_TOOL._meta.ui, undefined);
   assert.equal(NEWS_TOOL._meta["ui/resourceUri"], undefined);
+  assert.equal(RENDER_RESULTS_TOOL._meta.ui, undefined);
 
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();

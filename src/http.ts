@@ -127,16 +127,7 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
   const validateOrigin = originValidation(allowedOriginHostnames);
 
   const mcpHandler = createMcpHandler(
-    ({ authInfo, requestInfo }) => {
-      // Opt in per request, including discovery and resource reads. Never
-      // mutate shared tool definitions: other connections may choose no UI.
-      const ui = requestInfo
-        ? new URL(requestInfo.url).searchParams.getAll("ui")
-        : [];
-      return createMcpServer(toolCredential(authInfo), {
-        enableUi: ui.length === 1 && ui[0] === "true",
-      });
-    },
+    ({ authInfo }) => createMcpServer(toolCredential(authInfo)),
     {
       legacy: "stateless",
       onerror: (error) => log("MCP handler error:", error),

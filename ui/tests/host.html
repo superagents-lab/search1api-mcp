@@ -1,0 +1,12 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MCP Apps standard host fixture</title></head>
+<body><h1>MCP Apps standard host fixture</h1><p>Local synthetic results — no Search1API requests or credits.</p>
+<label>Case <select id="case"><option>results</option><option>empty</option><option>error</option><option>cancel</option><option>malformed</option><option>slow replay</option><option>no bridge</option></select></label>
+<label>Width <select id="width"><option>760</option><option>360</option></select></label>
+<label>Max height <select id="height"><option>600</option><option>260</option><option>160</option></select></label>
+<label>Theme <select id="theme"><option>light</option><option>dark</option></select></label>
+<label>Tool <select id="tool"><option>search</option><option>news</option></select></label>
+<label>Result count <select id="count"><option>8</option><option>50</option><option>1</option><option>4</option></select></label>
+<label><input id="deny" type="checkbox" checked>Reject external links</label>
+<label><input id="hold" type="checkbox">Hold result</label>
+<button id="load">Load view</button><button id="deliver" disabled>Deliver result</button><pre id="status"></pre><div id="container"></div>
+<script type="module" src="/tests/host.ts"></script></body></html>

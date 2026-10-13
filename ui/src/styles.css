@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+/* Follow the host theme (applyDocumentTheme sets data-theme), not the OS. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --font-runde: var(--font-sans, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif);
+}
+
+html,
+body {
+  margin: 0;
+  background: transparent;
+}
+
+.search-view {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px;
+  font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+  color: var(--color-text-primary, light-dark(#171717, #f5f5f5));
+  font-size: 14px;
+}
+.link-error { overflow-wrap: anywhere; margin-top: 8px; }
+.source-url { box-sizing: border-box; display: block; width: 100%; padding: 4px; font-size: 12px; }

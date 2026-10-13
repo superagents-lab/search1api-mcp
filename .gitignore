@@ -21,3 +21,6 @@ node_modules/
 run.sh
 .windsurfrules
 .cursor/
+# Built MCP Apps view (npm run build in ui/)
+ui/dist/
+.test-no-ui-*/

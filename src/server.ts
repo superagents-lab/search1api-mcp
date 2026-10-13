@@ -8,6 +8,13 @@ import {
 import { handleReadResource, RESOURCES } from "./resources.js";
 import { handleToolCall } from "./tools/handlers.js";
 import { ALL_TOOLS } from "./tools/index.js";
+import {
+  MCP_APP_MIME_TYPE,
+  SEARCH_UI_META,
+  SEARCH_UI_URI,
+  readSearchUi,
+  withoutUiMeta,
+} from "./ui.js";
 import { formatError, log } from "./utils.js";
 import { PACKAGE_VERSION } from "./version.js";
 
@@ -35,8 +42,12 @@ export function unauthenticatedCredential(message: string): CredentialProvider {
  *
  * The v2 serving entries call this factory once per modern HTTP exchange,
  * once per stateless legacy HTTP request, or once per stdio connection.
+ * Stdio advertises the built UI; HTTP explicitly opts in from its URL.
  */
-export function createMcpServer(credential?: CredentialProvider): McpServer {
+export function createMcpServer(
+  credential?: CredentialProvider,
+  { enableUi = true }: { enableUi?: boolean } = {}
+): McpServer {
   log("Creating Search1API MCP server");
 
   const server = new McpServer({
@@ -62,7 +73,7 @@ export function createMcpServer(credential?: CredentialProvider): McpServer {
         inputSchema,
         ...(outputSchema ? { outputSchema } : {}),
         annotations: { ...tool.annotations, title: tool.title },
-        _meta: tool._meta,
+        _meta: (enableUi ? tool : withoutUiMeta(tool))._meta,
       },
       async (args) => {
         try {
@@ -99,6 +110,35 @@ export function createMcpServer(credential?: CredentialProvider): McpServer {
           };
         } catch (error) {
           throw normalizeProtocolError("reading resource", error);
+        }
+      }
+    );
+  }
+
+  if (enableUi && SEARCH_UI_URI) {
+    server.registerResource(
+      "search-ui",
+      SEARCH_UI_URI,
+      {
+        title: "Search results view",
+        description: "Interactive view for web and news search results",
+        mimeType: MCP_APP_MIME_TYPE,
+        _meta: SEARCH_UI_META,
+      },
+      async (uri) => {
+        try {
+          return {
+            contents: [
+              {
+                uri: uri.href,
+                mimeType: MCP_APP_MIME_TYPE,
+                text: readSearchUi(),
+                _meta: SEARCH_UI_META,
+              },
+            ],
+          };
+        } catch (error) {
+          throw normalizeProtocolError("reading search UI", error);
         }
       }
     );

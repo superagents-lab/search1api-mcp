@@ -29,6 +29,18 @@ Three methods are supported — use whichever your client supports:
 
 Prefer OAuth or the Authorization header. Query-parameter credentials can be exposed in URLs, logs, and shell history.
 
+### Optional search and news UI
+
+Remote MCP returns text and structured results by default. To enable source cards for both `search` and `news` in a client that supports MCP Apps, configure:
+
+```text
+https://mcp.search1api.com/mcp?ui=true
+```
+
+Omitting `ui`, setting `ui=false`, or using any value other than a single lowercase `ui=true` keeps UI disabled. With a legacy query API key, use `https://mcp.search1api.com/mcp?apiKey=YOUR_SEARCH1API_KEY&ui=true`. Tool names and result data are identical in both modes; no extra display tool is added. Clients without UI support can still read the results.
+
+After changing the URL, reconnect or refresh the connector's tool definitions; clients may cache them. This URL setting applies to Remote MCP only; local stdio behavior is unchanged. See [MCP Apps UI](docs/mcp-ui.md) for details and release status.
+
 ### Claude Desktop
 
 ```json
@@ -230,3 +242,9 @@ Agentic search: describe the need in natural language and Search1API picks up to
 ## License
 
 MIT
+
+## UI and third-party credits
+
+The optional MCP Apps view for `search` and `news` shows source cards with titles and domains. Remote connections must opt in with `ui=true`. Text and structured results remain available to clients without UI support. The component is adapted from [Rare UI](https://rareui.com), by Swami Malode. Its MIT + Commons Clause + Attribution terms are reproduced in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+UI setup, sandbox origin, and release checks: [MCP Apps UI](docs/mcp-ui.md).

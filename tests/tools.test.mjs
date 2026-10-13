@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import {
+  cpSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+} from "node:fs";
 import http from "node:http";
+import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   Client,
   InMemoryTransport,
@@ -22,6 +31,8 @@ const { createMcpServer, unauthenticatedCredential } = await import(
 const { handleToolCall } = await import("../build/tools/handlers.js");
 const { ALL_TOOLS } = await import("../build/tools/index.js");
 const { RESOURCES } = await import("../build/resources.js");
+const { withoutUiMeta } = await import("../build/ui.js");
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const packageJson = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8")
 );
@@ -72,7 +83,7 @@ test("serves MCP 2026-07-28 clients over HTTP", async (context) => {
     result.tools.map((tool) => tool.name),
     EXPECTED_TOOLS
   );
-  assert.equal(result.tools[0].title, "Search the web");
+  assert.equal(result.tools[0].title, "Web search");
   assert.deepEqual(result.tools[0]._meta.securitySchemes, [
     { type: "oauth2", scopes: [] },
   ]);
@@ -393,7 +404,9 @@ test("keeps the LobeHub marketplace manifest aligned with the server", () => {
     "fatwang2-search1api-mcp"
   );
   assert.equal(marketplaceManifest.version, packageJson.version);
-  assert.deepEqual(marketplaceManifest.tools, ALL_TOOLS);
+  // The view URI carries a build hash, so listings carry the tools without it.
+  assert.deepEqual(marketplaceManifest.tools, ALL_TOOLS.map(withoutUiMeta));
+  assert.doesNotMatch(JSON.stringify(marketplaceManifest), /ui:\/\//);
   assert.deepEqual(marketplaceManifest.resources, RESOURCES);
   assert.match(marketplaceManifest.description, /OAuth 2\.1/);
   assert.doesNotMatch(
@@ -459,6 +472,194 @@ test("serves tool metadata over stdio without a configured API key", async (cont
     `expected a refusal, got ${JSON.stringify(refused)}`
   );
   assert.match(JSON.stringify(refused), /SEARCH1API_KEY is not set/);
+});
+
+test("links search and news to the same readable MCP Apps view, leaving crawl text-only", async (context) => {
+  const [clientTransport, serverTransport] =
+    InMemoryTransport.createLinkedPair();
+  const serverHandle = serveStdio(
+    () => createMcpServer(unauthenticatedCredential("SEARCH1API_KEY is not set.")),
+    { transport: serverTransport }
+  );
+  const client = new Client(
+    { name: "search1api-ui-test", version: "1.0.0" },
+    { versionNegotiation: { mode: { pin: "2026-07-28" } } }
+  );
+
+  context.after(async () => {
+    await client.close();
+    await serverHandle.close();
+  });
+
+  await client.connect(clientTransport);
+
+  const { tools } = await client.listTools();
+  const search = tools.find((tool) => tool.name === "search");
+  const news = tools.find((tool) => tool.name === "news");
+  const uri = search._meta.ui.resourceUri;
+  assert.match(uri, /^ui:\/\/search1api\/web-search-[0-9a-f]{10}\.html$/);
+  assert.equal(search._meta["ui/resourceUri"], uri);
+  assert.equal(news._meta.ui.resourceUri, uri);
+  assert.equal(news._meta["ui/resourceUri"], uri);
+  assert.equal(tools.find((tool) => tool.name === "crawl")._meta?.ui, undefined);
+
+  const [content] = (await client.readResource({ uri })).contents;
+  assert.equal(content.mimeType, "text/html;profile=mcp-app");
+  assert.match(content.text, /<div id="root">/);
+  assert.equal(content._meta.ui.domain, "https://mcp.search1api.com");
+  assert.equal(content._meta["openai/widgetMinFrameHeight"], 0);
+  assert.equal(content._meta["openai/widgetHeightHint"], 154);
+  assert.deepEqual(content._meta["openai/ui"].availableDisplayModes, ["inline"]);
+  assert.match(content.text, /Copyright \(c\) 2026 Swami Malode/);
+  assert.doesNotMatch(content.text, /<script[^>]+src=|<link[^>]+rel="stylesheet"/);
+});
+
+// Exercise the real HTTP adapter and both protocol paths: the endpoint URL
+// must reach discovery, tool calls and resource reads without shared state.
+for (const mode of [{ pin: "2026-07-28" }, "legacy"]) {
+  test(`remote UI is opt-in and isolated across connections (${JSON.stringify(mode)})`, async (context) => {
+    const originalFetch = globalThis.fetch;
+    const apiCalls = [];
+    context.mock.method(globalThis, "fetch", async (url, init) => {
+      if (String(url).startsWith("https://api.search1api.com/")) {
+        apiCalls.push({ url: String(url), body: JSON.parse(init.body), authorization: init.headers.Authorization });
+        return new Response(JSON.stringify({ results: [{
+          title: "Example", link: "https://example.com/", snippet: "A result",
+          published_date: "2026-10-13T08:30:00Z",
+        }] }), { headers: { "Content-Type": "application/json" } });
+      }
+      return originalFetch(url, init);
+    });
+    const testServer = await startTestHttpServer();
+    const clients = [];
+    context.after(async () => {
+      await Promise.all(clients.map((client) => client.close()));
+      await testServer.close();
+    });
+    const connect = async (query) => {
+      const client = new Client(
+        { name: "remote-ui-test", version: "1.0.0" },
+        { versionNegotiation: { mode } }
+      );
+      clients.push(client);
+      const url = new URL(testServer.url);
+      url.search = query;
+      const transport = query.includes("apiKey=")
+        ? new StreamableHTTPClientTransport(url)
+        : createAuthenticatedTransport(url);
+      await client.connect(transport);
+      return client;
+    };
+
+    const [enabled, disabled] = await Promise.all([connect("?ui=true"), connect("")]);
+    const [onTools, offTools] = await Promise.all([enabled.listTools(), disabled.listTools()]);
+    assert.deepEqual(onTools.tools.map((tool) => tool.name), EXPECTED_TOOLS);
+    assert.deepEqual(offTools.tools, onTools.tools.map(withoutUiMeta));
+    const uri = onTools.tools.find((tool) => tool.name === "search")._meta.ui.resourceUri;
+    assert.equal(onTools.tools.find((tool) => tool.name === "news")._meta.ui.resourceUri, uri);
+    assert.equal(onTools.tools.find((tool) => tool.name === "crawl")._meta?.ui, undefined);
+    const [onResources, offResources] = await Promise.all([enabled.listResources(), disabled.listResources()]);
+    assert.ok(onResources.resources.some((resource) => resource.uri === uri));
+    assert.deepEqual(offResources.resources, onResources.resources.filter((resource) => resource.uri !== uri));
+    assert.match((await enabled.readResource({ uri })).contents[0].text, /<div id="root">/);
+    await assert.rejects(disabled.readResource({ uri }));
+
+    for (const name of ["search", "news"]) {
+      const args = { name, arguments: { query: "MCP", max_results: 1 } };
+      const [withUi, withoutUi] = await Promise.all([enabled.callTool(args), disabled.callTool(args)]);
+      assert.equal(withUi.isError, undefined);
+      assert.deepEqual(withoutUi, withUi);
+      assert.deepEqual(JSON.parse(withUi.content[0].text), withUi.structuredContent);
+      assert.equal(withUi.structuredContent.results[0].title, "Example");
+    }
+    assert.equal(apiCalls.length, 4);
+    assert.ok(apiCalls.every((call) => !("ui" in call.body)));
+
+    // Exact, single ui=true is the only opt-in. Existing credentials and
+    // unrelated query parameters must continue to work.
+    for (const query of ["?ui=false", "?ui=", "?ui=1", "?ui=TRUE", "?ui=invalid", "?ui=true&ui=false", "?ui=false&ui=true", "?ui=true&ui=true", "?ui[]=true", "?apiKey=test-key"]) {
+      const client = await connect(query);
+      assert.deepEqual((await client.listTools()).tools, offTools.tools, query);
+      assert.deepEqual((await client.listResources()).resources, offResources.resources, query);
+    }
+    const queryKeyClient = await connect("?apiKey=test-key&ui=true");
+    assert.deepEqual((await queryKeyClient.listTools()).tools, onTools.tools);
+    // Recheck the original clients after alternating modes to catch mutation.
+    assert.deepEqual((await enabled.listTools()).tools, onTools.tools);
+    assert.deepEqual((await disabled.listTools()).tools, offTools.tools);
+
+    for (const query of ["", "?ui=true", "?ui=false"]) {
+      const url = new URL(testServer.url);
+      url.search = query;
+      const response = await anonymousRequest(url, { jsonrpc: "2.0", id: 1, method: "tools/list" });
+      assert.equal(response.status, 401);
+      assert.match(response.headers.get("www-authenticate"), /resource_metadata="https:\/\/mcp.search1api.com\/\.well-known\/oauth-protected-resource\/mcp"/);
+    }
+  });
+}
+
+test("advertises no view when the UI has not been built", async (context) => {
+  // A copy of the build with no ui/dist beside it. It lives inside the repo so
+  // its imports still resolve against the repo's node_modules.
+  const copy = mkdtempSync(join(ROOT, ".test-no-ui-"));
+  context.after(() => rmSync(copy, { recursive: true, force: true }));
+  cpSync(join(ROOT, "build"), join(copy, "build"), { recursive: true });
+  cpSync(join(ROOT, "package.json"), join(copy, "package.json"));
+
+  const load = (path) => import(pathToFileURL(join(copy, "build", path)).href);
+  const { SEARCH_UI_URI } = await load("ui.js");
+  const { SEARCH_TOOL, NEWS_TOOL } = await load("tools/index.js");
+  const { createMcpServer: createBareServer, unauthenticatedCredential: bare } =
+    await load("server.js");
+
+  assert.equal(SEARCH_UI_URI, undefined);
+  assert.equal(SEARCH_TOOL._meta.ui, undefined);
+  assert.equal(SEARCH_TOOL._meta["ui/resourceUri"], undefined);
+  assert.equal(NEWS_TOOL._meta.ui, undefined);
+  assert.equal(NEWS_TOOL._meta["ui/resourceUri"], undefined);
+
+  const [clientTransport, serverTransport] =
+    InMemoryTransport.createLinkedPair();
+  const serverHandle = serveStdio(
+    () => createBareServer(bare("SEARCH1API_KEY is not set.")),
+    { transport: serverTransport }
+  );
+  const client = new Client(
+    { name: "search1api-no-ui-test", version: "1.0.0" },
+    { versionNegotiation: { mode: { pin: "2026-07-28" } } }
+  );
+  context.after(async () => {
+    await client.close();
+    await serverHandle.close();
+  });
+  await client.connect(clientTransport);
+
+  const { resources } = await client.listResources();
+  assert.equal(
+    resources.some((resource) => resource.uri.startsWith("ui://")),
+    false
+  );
+});
+
+test("packs the built view with the server", () => {
+  // Scripts are skipped so this checks the files list, not another build.
+  const [pack] = JSON.parse(
+    execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], {
+      cwd: ROOT,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      shell: process.platform === "win32",
+    })
+  );
+  const files = pack.files.map((file) => file.path);
+
+  assert.ok(files.includes("ui/dist/index.html"));
+  assert.ok(files.includes("build/ui.js"));
+  assert.ok(files.includes("THIRD_PARTY_NOTICES.md"));
+  assert.equal(
+    files.some((file) => file.startsWith("ui/src/") || file.startsWith("ui/node_modules/")),
+    false
+  );
 });
 
 test("challenges every unauthenticated request, including discovery", async (context) => {
@@ -726,6 +927,26 @@ test("ask rejects an empty query before making an API request", async () => {
     handleToolCall("ask", { query: "  " }),
     (error) => error instanceof ProtocolError && error.code === INVALID_PARAMS
   );
+});
+
+test("news remains readable over MCP without UI capabilities and retains optional publication dates", async (context) => {
+  const calls = stubFetch(context, {
+    results: [
+      { title: "Dated story", link: "https://example.com/news/1", snippet: "First story", published_date: "2026-10-12T08:30:00Z" },
+      { title: "Undated story", link: "https://example.com/news/2", snippet: "Second story" },
+    ],
+  });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const serverHandle = serveStdio(() => createMcpServer("news-test-key"), { transport: serverTransport });
+  const client = new Client({ name: "text-only-news-client", version: "1.0.0" });
+  context.after(async () => { await client.close(); await serverHandle.close(); });
+  await client.connect(clientTransport);
+  const response = await client.callTool({ name: "news", arguments: { query: "MCP", max_results: 2 } });
+  assert.equal(calls.length, 1);
+  assert.deepEqual(JSON.parse(response.content[0].text), response.structuredContent);
+  assert.equal(response.structuredContent.results[0].metadata.published_date, "2026-10-12T08:30:00Z");
+  assert.equal(response.structuredContent.results[1].metadata.published_date, undefined);
+  assert.equal(response.structuredContent.results[1].text, "Second story");
 });
 
 test("search accepts new engines and pagination and keeps source fields", async (context) => {

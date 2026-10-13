@@ -22,7 +22,9 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
       - run: npm ci
+      - run: npm ci --prefix ui
       - run: npm audit --audit-level=high
+      - run: npm audit --prefix ui --audit-level=high
       - run: npm test
       - name: Verify package contents
         if: matrix.node-version == 22

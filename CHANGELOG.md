@@ -1,10 +1,13 @@
 # Changelog
 
-## Unreleased — remote service
+## 0.8.0 - 2026-10-14
 
-- Add optional shared source cards for `search` and `news`, enabled only when the remote URL contains `ui=true`. Default connections keep ordinary text and structured results; no extra rendering tool is added.
-- Cards support native source expansion, collapse, host sizing and accessible waiting/error states. UI resources include third-party attribution and are built into the server deployment.
-- This rollout does not publish an npm version.
+- Add `render_results` to both remote HTTP and local stdio. Present selected existing sources as interactive cards in MCP Apps hosts, with a complete text list and structured JSON for every client. Rendering does not repeat a search or consume search credits.
+- Keep data retrieval tools separate from presentation; remove the experimental `ui` URL switch. The default MCP endpoint exposes the renderer without special parameters.
+- Bundle the source-card UI and attribution in the npm package. Cards support source expansion, collapse, host sizing and accessible waiting/error states.
+- Let portable hosts choose their sandbox origin while retaining ChatGPT's dedicated origin through its OpenAI metadata alias. Keep the previous deployed UI resource readable for cached tool definitions.
+- Advertise the existing 512×512 square logo through standard `serverInfo.icons`, the server card and registry metadata. Include the PNG in the npm package.
+- Refresh plugin descriptions around multi-engine web access and interactive source cards, and use English-only plugin skills.
 
 ## 0.7.1 - 2026-10-12
 

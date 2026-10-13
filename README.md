@@ -35,7 +35,7 @@ Remote MCP exposes `render_results` at the standard endpoint above. Data tools s
 
 Both HTTP and stdio advertise the square Search1API logo through standard `serverInfo.icons` metadata. The 512×512 PNG is served publicly at `https://mcp.search1api.com/assets/icon-square.png`, without authentication or redirects. The server card and registry manifest use the same icon. Clients choose whether to display it; this does not replace an icon stored separately by a plugin directory.
 
-See [the rendering contract](docs/render-results.md) for arguments, limits and fallback behavior. Existing npm installations update separately when a new package version is released.
+See [the rendering contract](docs/render-results.md) for arguments, limits and fallback behavior. The npm package includes this renderer from version 0.8.0. Update existing installations and restart the MCP connection; `npx -y search1api-mcp@latest` starts the latest published package.
 
 After changing the URL, reconnect or refresh the connector's tool definitions; clients may cache them. This URL setting applies to Remote MCP only; local stdio behavior is unchanged. See [MCP Apps UI](docs/mcp-ui.md) for details and release status.
 

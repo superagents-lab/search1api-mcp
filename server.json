@@ -6,7 +6,9 @@
     {
       "src": "https://mcp.search1api.com/assets/icon-square.png",
       "mimeType": "image/png",
-      "sizes": ["512x512"]
+      "sizes": [
+        "512x512"
+      ]
     }
   ],
   "description": "Web search, agentic search, news, page retrieval, sitemaps, and trending topics through Search1API.",
@@ -14,7 +16,7 @@
     "url": "https://github.com/superagents-lab/search1api-mcp",
     "source": "github"
   },
-  "version": "0.7.1",
+  "version": "0.8.0",
   "remotes": [
     {
       "type": "streamable-http",
@@ -25,7 +27,7 @@
     {
       "registryType": "npm",
       "identifier": "search1api-mcp",
-      "version": "0.7.1",
+      "version": "0.8.0",
       "transport": {
         "type": "stdio"
       },

@@ -545,12 +545,22 @@ test("links only render_results to the readable MCP Apps view", async (context) 
   const [content] = (await client.readResource({ uri })).contents;
   assert.equal(content.mimeType, "text/html;profile=mcp-app");
   assert.match(content.text, /<div id="root">/);
-  assert.equal(content._meta.ui.domain, "https://mcp.search1api.com");
+  assert.equal("domain" in content._meta.ui, false, "Portable metadata must not force ChatGPT's sandbox origin on Claude");
+  assert.equal(content._meta["openai/widgetDomain"], "https://mcp.search1api.com");
   assert.equal(content._meta["openai/widgetMinFrameHeight"], 0);
   assert.equal(content._meta["openai/widgetHeightHint"], 154);
   assert.deepEqual(content._meta["openai/ui"].availableDisplayModes, ["inline"]);
   assert.match(content.text, /Copyright \(c\) 2026 Swami Malode/);
   assert.doesNotMatch(content.text, /<script[^>]+src=|<link[^>]+rel="stylesheet"/);
+  const oldUri = "ui://search1api/web-search-135d050d9e.html";
+  assert.notEqual(uri, oldUri, "Sandbox metadata changes must invalidate resource caches");
+  const [oldContent] = (await client.readResource({ uri: oldUri })).contents;
+  assert.equal(oldContent.uri, oldUri);
+  assert.equal(oldContent.text, content.text);
+  assert.deepEqual(oldContent._meta, content._meta, "Cached tool definitions must receive the corrected metadata too");
+  const listed = (await client.listResources()).resources.find(resource => resource.uri === uri);
+  assert.equal("domain" in listed._meta.ui, false);
+  assert.equal(listed._meta["openai/widgetDomain"], "https://mcp.search1api.com");
 });
 
 // No UI extension is negotiated by these clients. Both protocol eras must

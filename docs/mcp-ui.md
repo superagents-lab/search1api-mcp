@@ -24,11 +24,11 @@ See [render_results](render-results.md) for the input/output contract. An empty 
 
 ## ChatGPT resource metadata
 
-`ui.domain` defaults to the existing Search1API MCP origin `https://mcp.search1api.com`. Use this origin only for the Search1API app's UI identity. ChatGPT serves the component; this does not embed the MCP endpoint as an external iframe.
+Sandbox origin formats are host-specific. Portable `ui` metadata omits `domain`, allowing Claude and other MCP Apps hosts to choose their own sandbox origin. ChatGPT's dedicated `https://mcp.search1api.com` identity is declared through its documented `openai/widgetDomain` alias. ChatGPT serves the component; this does not embed the MCP endpoint as an external iframe.
 
 For a separate deployment, set `SEARCH1API_UI_DOMAIN` to its dedicated HTTPS origin, with no path, trailing slash, credentials, query or fragment. The server validates this at startup. The selected origin must be controlled by the publisher and unique to the app before public submission. A configured origin does not prove dashboard domain verification or approval.
 
-The standard fields are `ui.domain`, `ui.csp`, `ui.prefersBorder`, and `ui.resourceUri`. The documented ChatGPT additions are `openai/ui` and `openai/widgetDescription`.
+The shared fields we emit are `ui.csp`, `ui.prefersBorder`, and `ui.resourceUri`. The documented ChatGPT additions include `openai/widgetDomain`, `openai/ui`, and `openai/widgetDescription`. UI resource URIs include a content/metadata hash; the previous deployed renderer URI remains readable with the corrected metadata for cached tool definitions.
 
 ## Local checks
 

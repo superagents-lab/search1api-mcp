@@ -38,8 +38,8 @@ export function withoutUiMeta<T extends { _meta?: Record<string, unknown> }>(
   return { ...tool, _meta: meta };
 }
 
-// This existing Search1API origin identifies this app's sandbox.
-// ChatGPT hosts the HTML; the origin is not an external iframe URL.
+// ChatGPT accepts an HTTPS origin; other hosts validate ui.domain differently.
+// Keep this identity in the OpenAI alias so portable hosts choose their origin.
 function uiDomain(): string {
   const value = process.env.SEARCH1API_UI_DOMAIN ?? "https://mcp.search1api.com";
   const url = new URL(value);
@@ -52,10 +52,10 @@ function uiDomain(): string {
 // Standard size-changed notifications remain authoritative once the view loads.
 export const SEARCH_UI_META = {
   ui: {
-    domain: uiDomain(),
     csp: { connectDomains: [], resourceDomains: ["https://icons.duckduckgo.com"] },
     prefersBorder: true,
   },
+  "openai/widgetDomain": uiDomain(),
   "openai/ui": {
     availableDisplayModes: ["inline"],
     preferredDisplayMode: "inline",
@@ -78,3 +78,7 @@ const version = searchUiVersion();
 export const SEARCH_UI_URI: string | undefined = version
   ? `ui://search1api/web-search-${version}.html`
   : undefined;
+
+// Keep the deployed renderer link readable for hosts with cached tool metadata.
+// The HTML contract is unchanged; only its host-specific sandbox hint changed.
+export const SEARCH_UI_COMPAT_URIS = ["ui://search1api/web-search-135d050d9e.html"];

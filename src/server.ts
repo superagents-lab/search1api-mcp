@@ -12,6 +12,7 @@ import {
   MCP_APP_MIME_TYPE,
   SEARCH_UI_META,
   SEARCH_UI_URI,
+  SEARCH_UI_COMPAT_URIS,
   readSearchUi,
 } from "./ui.js";
 import { formatError, log } from "./utils.js";
@@ -115,32 +116,34 @@ export function createMcpServer(
   }
 
   if (SEARCH_UI_URI) {
-    server.registerResource(
-      "search-ui",
-      SEARCH_UI_URI,
-      {
-        title: "Source results view",
-        description: "Interactive view of already retrieved source results",
-        mimeType: MCP_APP_MIME_TYPE,
-        _meta: SEARCH_UI_META,
-      },
-      async (uri) => {
-        try {
-          return {
-            contents: [
-              {
-                uri: uri.href,
-                mimeType: MCP_APP_MIME_TYPE,
-                text: readSearchUi(),
-                _meta: SEARCH_UI_META,
-              },
-            ],
-          };
-        } catch (error) {
-          throw normalizeProtocolError("reading search UI", error);
+    for (const resourceUri of [SEARCH_UI_URI, ...SEARCH_UI_COMPAT_URIS]) {
+      server.registerResource(
+        resourceUri === SEARCH_UI_URI ? "search-ui" : "search-ui-compat",
+        resourceUri,
+        {
+          title: "Source results view",
+          description: "Interactive view of already retrieved source results",
+          mimeType: MCP_APP_MIME_TYPE,
+          _meta: SEARCH_UI_META,
+        },
+        async (uri) => {
+          try {
+            return {
+              contents: [
+                {
+                  uri: uri.href,
+                  mimeType: MCP_APP_MIME_TYPE,
+                  text: readSearchUi(),
+                  _meta: SEARCH_UI_META,
+                },
+              ],
+            };
+          } catch (error) {
+            throw normalizeProtocolError("reading search UI", error);
+          }
         }
-      }
-    );
+      );
+    }
   }
 
   return server;

@@ -11,6 +11,7 @@
   "files": [
     "build",
     "ui/dist",
+    "assets/icon-square.png",
     "server.json",
     "THIRD_PARTY_NOTICES.md",
     "docs"

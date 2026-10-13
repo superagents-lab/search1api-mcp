@@ -50,6 +50,12 @@ const EXPECTED_TOOLS = [
   "render_results",
 ];
 
+const EXPECTED_ICONS = [{
+  src: "https://mcp.search1api.com/assets/icon-square.png",
+  mimeType: "image/png",
+  sizes: ["512x512"],
+}];
+
 test("exports only supported public tools", () => {
   assert.deepEqual(
     ALL_TOOLS.map((tool) => tool.name),
@@ -79,6 +85,7 @@ test("serves MCP 2026-07-28 clients over HTTP", async (context) => {
 
   assert.equal(client.getProtocolEra(), "modern");
   assert.equal(client.getNegotiatedProtocolVersion(), "2026-07-28");
+  assert.deepEqual(client.getServerVersion()?.icons, EXPECTED_ICONS);
   assert.equal(client.getServerVersion()?.version, packageJson.version);
   assert.deepEqual(
     result.tools.map((tool) => tool.name),
@@ -126,6 +133,7 @@ test("keeps 2025-era clients working through the stateless fallback", async (con
   const result = await client.listTools();
 
   assert.equal(client.getProtocolEra(), "legacy");
+  assert.deepEqual(client.getServerVersion()?.icons, EXPECTED_ICONS);
   assert.equal(client.getServerVersion()?.version, packageJson.version);
   assert.deepEqual(
     result.tools.map((tool) => tool.name),
@@ -153,10 +161,38 @@ test("serves MCP 2026-07-28 clients over the stdio entry", async (context) => {
   const result = await client.listTools();
 
   assert.equal(client.getProtocolEra(), "modern");
+  assert.deepEqual(client.getServerVersion()?.icons, EXPECTED_ICONS);
   assert.deepEqual(
     result.tools.map((tool) => tool.name),
     EXPECTED_TOOLS
   );
+});
+
+test("serves the square implementation icon anonymously without credential validation", async (context) => {
+  let validationCalls = 0;
+  const testServer = await startTestHttpServer(async () => {
+    validationCalls += 1;
+    throw new Error("Public icon must not validate credentials");
+  });
+  context.after(() => testServer.close());
+
+  const card = await (await fetch(new URL("/.well-known/mcp/server-card.json", testServer.url))).json();
+  assert.deepEqual(card.icons, EXPECTED_ICONS);
+  assert.deepEqual(card.serverInfo.icons, EXPECTED_ICONS);
+  const registry = JSON.parse(readFileSync(new URL("../server.json", import.meta.url), "utf8"));
+  assert.deepEqual(registry.icons, EXPECTED_ICONS);
+  assert.equal(new URL(card.icons[0].src).origin, new URL(card.serverUrl).origin);
+
+  const response = await fetch(new URL(new URL(card.icons[0].src).pathname, testServer.url), { redirect: "manual" });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("content-type"), "image/png");
+  assert.equal(response.headers.get("www-authenticate"), null);
+  const png = Buffer.from(await response.arrayBuffer());
+  assert.deepEqual(png, readFileSync(new URL("../assets/icon-square.png", import.meta.url)));
+  assert.equal(png.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
+  assert.equal(png.readUInt32BE(16), 512);
+  assert.equal(png.readUInt32BE(20), 512);
+  assert.equal(validationCalls, 0);
 });
 
 test("authenticates every MCP HTTP request before protocol handling", async (context) => {
@@ -639,6 +675,7 @@ test("packs the built view with the server", () => {
 
   assert.ok(files.includes("ui/dist/index.html"));
   assert.ok(files.includes("build/ui.js"));
+  assert.ok(files.includes("assets/icon-square.png"));
   assert.ok(files.includes("THIRD_PARTY_NOTICES.md"));
   assert.equal(
     files.some((file) => file.startsWith("ui/src/") || file.startsWith("ui/node_modules/")),

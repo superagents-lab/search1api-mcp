@@ -1,7 +1,7 @@
 {
   "name": "search1api",
-  "version": "1.2.0",
-  "description": "Search the live web, read full pages, follow the news, map a site's links, and see what's trending, with every answer backed by citable sources.",
+  "version": "1.2.1",
+  "description": "Search across multiple engines and specialized sources with Search1API, including Google, Bing, DuckDuckGo, Yahoo, GitHub, Reddit, X, arXiv, Wikipedia, YouTube, WeChat, and Bilibili. Choose sources that fit your task and compare findings across them. Read full pages, search current news, discover site links, and explore GitHub and Hacker News trends. Results include source URLs for citation.",
   "author": {
     "name": "Search1API",
     "url": "https://s1.dev"
@@ -15,21 +15,23 @@
     "research",
     "news",
     "crawl",
-    "citations"
+    "citations",
+    "multi-engine"
   ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Search1API",
-    "shortDescription": "Search the web, read pages, and track news",
-    "longDescription": "Research the live web across multiple search and news sources, read full pages from any URL, map a site's links, and see what's trending on GitHub and Hacker News. Answers cite their sources.",
+    "shortDescription": "Search, read, and explore",
+    "longDescription": "Search across multiple engines and specialized sources with Search1API, including Google, Bing, DuckDuckGo, Yahoo, GitHub, Reddit, X, arXiv, Wikipedia, YouTube, WeChat, and Bilibili. Choose sources that fit your task and compare findings across them. Read full pages, search current news, discover site links, and explore GitHub and Hacker News trends. Results include source URLs for citation.",
     "developerName": "Search1API",
     "category": "Productivity",
     "capabilities": [
-      "Web search",
+      "Multi-engine web search",
+      "Developer and community research",
       "News search",
       "Web page retrieval",
-      "Sitemap discovery",
+      "Site link discovery",
       "Trending topics"
     ],
     "websiteURL": "https://s1.dev",
@@ -42,6 +44,7 @@
     ],
     "brandColor": "#007BFF",
     "composerIcon": "./assets/icon.png",
-    "logo": "./assets/icon.png"
+    "logo": "./assets/icon.png",
+    "supportURL": "https://s1.dev/contact"
   }
 }

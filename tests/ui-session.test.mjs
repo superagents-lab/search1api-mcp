@@ -7,7 +7,7 @@ const { outputText } = ts.transpileModule(readFileSync(new URL('../ui/src/sessio
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },
 });
 const { createSearchSession, parseSources } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
-const result = { structuredContent: { results: [{ title: 'Example', url: 'https://example.com/' }] } };
+const result = { structuredContent: { title: 'Selected sources', total: 1, results: [{ title: 'Example', url: 'https://example.com/' }] } };
 function fixture(overrides = {}) {
   let connections = 0;
   const app = { connect: async () => { connections++; }, close: async () => {}, getHostContext: () => ({ theme: 'dark' }), openLink: async () => ({}), ...overrides };
@@ -24,6 +24,7 @@ test('UI connection is single-use and results do not depend on input/replay timi
   app.ontoolinput({ arguments: { query: 'replayed input' } });
   assert.equal(session.getSnapshot().status, 'done');
   assert.equal(session.getSnapshot().sources.length, 1);
+  assert.equal(session.getSnapshot().title, 'Selected sources');
 });
 
 test('connection rejection becomes a visible terminal error', async () => {

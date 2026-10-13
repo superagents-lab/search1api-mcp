@@ -3,7 +3,8 @@ import express from 'express';
 import { McpServer, createMcpHandler, fromJsonSchema } from '@modelcontextprotocol/server';
 import { toNodeHandler } from '@modelcontextprotocol/node';
 import { SEARCH_UI_URI, SEARCH_UI_META, MCP_APP_MIME_TYPE, readSearchUi } from '../build/ui.js';
-import { SEARCH_TOOL, NEWS_TOOL } from '../build/tools/index.js';
+import { handleRenderResults } from '../build/tools/render-results.js';
+import { SEARCH_TOOL, NEWS_TOOL, RENDER_RESULTS_TOOL } from '../build/tools/index.js';
 const delayMs = Math.min(30_000, Math.max(0, Number(process.env.UI_FIXTURE_DELAY_MS ?? 15_000)));
 const record = (event, extra = {}) => console.log(JSON.stringify({ at: new Date().toISOString(), event, ...extra }));
 const resultsFor = (kind, count) => Array.from({ length: count }, (_, i) => ({
@@ -30,16 +31,14 @@ const handler = createMcpHandler(() => {
       return { structuredContent: { results }, content: [{ type: 'text', text: JSON.stringify({ results }) }] };
     });
   }
-  server.registerTool('preview_search_results', {
-    title: 'Preview synthetic source cards',
-    description: 'UI verification only. Returns synthetic source cards; it does not search the web or consume credits.',
-    inputSchema: fromJsonSchema({ type: 'object', properties: { count: { type: 'integer', minimum: 0, maximum: 50, default: 4 } } }),
-    annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+  server.registerTool(RENDER_RESULTS_TOOL.name, {
+    title: RENDER_RESULTS_TOOL.title,
+    description: RENDER_RESULTS_TOOL.description,
+    inputSchema: fromJsonSchema(RENDER_RESULTS_TOOL.inputSchema),
+    outputSchema: fromJsonSchema(RENDER_RESULTS_TOOL.outputSchema),
+    annotations: RENDER_RESULTS_TOOL.annotations,
     _meta: { ui: { resourceUri: SEARCH_UI_URI } },
-  }, async ({ count = 4 }) => {
-    const results = resultsFor('search', count);
-    return { structuredContent: { results }, content: [{ type: 'text', text: JSON.stringify({ results }) }] };
-  });
+  }, handleRenderResults);
   server.registerResource('search-ui', SEARCH_UI_URI, { mimeType: MCP_APP_MIME_TYPE }, async () => {
     record('resource-read', { uri: SEARCH_UI_URI });
     return { contents: [{ uri: SEARCH_UI_URI, mimeType: MCP_APP_MIME_TYPE, text: readSearchUi(), _meta: SEARCH_UI_META }] };

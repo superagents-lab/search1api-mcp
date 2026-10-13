@@ -10,7 +10,7 @@ Live web research through the Search1API MCP server bundled with this plugin.
 
 ## Tools
 
-The Search1API MCP server exposes six read-only tools. The host may prefix
+The Search1API MCP server exposes seven read-only tools. The host may prefix
 their names (for example `mcp__search1api__search`); the final names are:
 
 | User intent | Tool |
@@ -21,6 +21,7 @@ their names (for example `mcp__search1api__search`); the final names are:
 | Read a page the user shared, or the full page behind a result | `crawl` |
 | Explore the links on a site or page | `sitemap` |
 | See what is popular right now on GitHub or Hacker News | `trending` |
+| Display selected existing sources | `render_results` |
 
 If none of these tools are available, Search1API is not connected yet. Ask
 the user to sign in to Search1API from this plugin (in Codex, `/mcp` shows
@@ -103,3 +104,16 @@ credits. Prefer a few targeted
   out and stop. Retrying returns the same error.
 - **A page can't be read** (blocked, paywalled, or empty) → say which page
   failed and continue with the other sources.
+
+## Present selected sources
+
+Use `render_results` when the user wants to browse sources or a source-card list
+helps their task. First retrieve and select results, then pass those existing
+results in the desired order; combine multiple searches when useful. Copy source
+titles and URLs, and use short original snippets rather than full crawled pages.
+Rendering and expanding cards do not perform searches or consume search credits.
+
+Skip rendering for intermediate research and when a normal cited answer is
+sufficient. Clients without UI support receive a complete readable source list.
+The remote endpoint needs no UI URL parameter. Rendering confirms that results
+are prepared, not that the host displayed the UI.

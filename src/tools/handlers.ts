@@ -9,6 +9,7 @@ import { handleCrawl } from "./crawl.js";
 import { handleSitemap } from "./sitemap.js";
 import { handleNews } from "./news.js";
 import { handleTrending } from "./trending.js";
+import { handleRenderResults } from "./render-results.js";
 import { handleAsk } from "./ask.js";
 import {
   SEARCH_TOOL,
@@ -17,6 +18,7 @@ import {
   NEWS_TOOL,
   TRENDING_TOOL,
   ASK_TOOL,
+  RENDER_RESULTS_TOOL,
 } from "./index.js";
 
 /**
@@ -51,6 +53,9 @@ export async function handleToolCall(
 
     case ASK_TOOL.name:
       return await handleAsk(args, apiKey);
+
+    case RENDER_RESULTS_TOOL.name:
+      return await handleRenderResults(args);
 
     default:
       log(`Unknown tool: ${toolName}`);

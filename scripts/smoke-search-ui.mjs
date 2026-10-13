@@ -1,33 +1,15 @@
-// Smoke-test the search MCP App over real stdio: tool metadata, UI resource, live call.
+// Read metadata/resources and render supplied synthetic sources without paid calls.
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
-
-const client = new Client({ name: "smoke", version: "0.0.0" });
-await client.connect(
-  new StdioClientTransport({ command: "node", args: ["build/index.js"], stderr: "ignore" })
-);
-
-const { tools } = await client.listTools();
-const search = tools.find((tool) => tool.name === "search");
-console.log("search _meta:", JSON.stringify(search?._meta));
-const news = tools.find((tool) => tool.name === "news");
-if (news?._meta?.ui?.resourceUri !== search?._meta?.ui?.resourceUri) throw new Error("News and search must share the result view");
-console.log("news shares search UI:", !!news?._meta?.ui?.resourceUri);
-
-const { resources } = await client.listResources();
-console.log("resources:", resources.map((r) => `${r.uri} ${r.mimeType}`));
-
-const ui = await client.readResource({ uri: search._meta.ui.resourceUri });
-const [content] = ui.contents;
-console.log("ui resource:", content.mimeType, content.text.length, "chars", JSON.stringify(content._meta));
-
-if (process.argv[2]) {
-  const result = await client.callTool({
-    name: "search",
-    arguments: { query: process.argv[2], max_results: 6 },
-  });
-  const results = result.structuredContent?.results ?? [];
-  console.log("isError:", !!result.isError, "results:", results.length);
-  for (const item of results) console.log(" -", item.title, item.url);
-}
-await client.close();
+const client = new Client({ name: "render-smoke", version: "1.0.0" });
+await client.connect(new StdioClientTransport({ command: "node", args: ["build/index.js"], stderr: "ignore", env: { ...process.env, SEARCH1API_KEY: "local-render-smoke" } }));
+try {
+  const { tools } = await client.listTools();
+  const renderer = tools.find(tool => tool.name === "render_results");
+  if (tools.filter(tool => tool._meta?.ui?.resourceUri).length !== 1) throw new Error("Only render_results should link to UI");
+  const [resource] = (await client.readResource({ uri: renderer._meta.ui.resourceUri })).contents;
+  console.log(JSON.stringify({ tool: renderer.name, uri: resource.uri, mimeType: resource.mimeType, bytes: resource.text.length }));
+  const result = await client.callTool({ name: "render_results", arguments: { results: [{ title: "Synthetic source", url: "https://example.com/source" }] } });
+  if (result.isError || result.structuredContent?.total !== 1 || !result.content[0].text.includes("https://example.com/source")) throw new Error("Rendering fallback failed");
+  console.log("Synthetic rendering and text fallback passed; no search executed.");
+} finally { await client.close(); }

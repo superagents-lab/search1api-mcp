@@ -36,15 +36,14 @@ function SearchView() {
       {state.status === "waiting" && (
         <div role="status" aria-busy="true">
           <WebSearch className="w-full" status="searching" sources={[]} open={false}
-            label={state.context?.toolInfo?.tool.name === "news" ? "Searching news…"
-              : state.context?.toolInfo?.tool.name === "search" ? "Searching the web…" : "Searching…"}
+            label="Preparing results…"
             expandable={false} animateHeight={false} appear={false} />
         </div>
       )}
       {state.message && <p role={state.status === "error" ? "alert" : "status"}>{state.message}</p>}
-      {state.status === "done" && state.sources.length === 0 && <p role="status">No results found.</p>}
+      {state.status === "done" && state.sources.length === 0 && <p role="status">No results to display.</p>}
       {state.status === "done" && state.sources.length > 0 && (
-        <WebSearch className="w-full" status="done" label={`Found ${state.sources.length} results`}
+        <WebSearch className="w-full" status="done" label={`${state.title ?? "Results"} · ${state.sources.length} sources`}
           open={open} onOpenChange={setOpen}
           sources={state.sources} animateHeight={false} appear={false} />
       )}

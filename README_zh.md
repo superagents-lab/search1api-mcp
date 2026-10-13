@@ -29,17 +29,13 @@
 
 优先使用 OAuth 或 Authorization Header。URL Query 中的凭据可能暴露在 URL、日志和 shell 历史记录中。
 
-### 可选的搜索与新闻 UI
+### 展示已选来源
 
-Remote MCP 默认只提供文本和结构化结果。在支持 MCP Apps 的客户端中，如需为 `search` 和 `news` 开启来源卡片，请配置：
+Remote MCP 和 `search1api-mcp` 0.8.0 及以上版本的本地 stdio 都提供 `render_results`。`search`、`news` 和 `ask` 负责获取数据；需要浏览来源时，再把已有结果传给 `render_results`。
 
-```text
-https://mcp.search1api.com/mcp?ui=true
-```
+支持 MCP Apps 的客户端可以展示来源卡片。所有客户端都收到完整文本列表和结构化 JSON；渲染和展开来源不会再次搜索，也不消耗搜索积分。不需要 `ui` URL 参数，继续使用标准端点 `https://mcp.search1api.com/mcp`。
 
-省略 `ui`、设置 `ui=false`，或使用其他值，均不开启 UI；只接受单个小写 `ui=true`。兼容 URL 密钥的写法为 `https://mcp.search1api.com/mcp?apiKey=YOUR_SEARCH1API_KEY&ui=true`。两种模式的工具名称、结果数据保持一致，不增加额外展示工具。不支持 UI 的客户端仍可正常读取结果。
-
-修改 URL 后，请重新连接或刷新连接器的工具定义，避免使用客户端缓存。这一参数只控制 Remote MCP，本地 stdio 行为不变。详见 [MCP Apps UI](docs/mcp-ui.md) 的配置与发布状态。
+本地安装请升级并重启 MCP 连接：`npm install -g search1api-mcp@latest`，或使用 `npx -y search1api-mcp@latest`。如果看不到新工具，请刷新连接器的工具定义。参数和返回结构见 [render_results](docs/render-results.md)。
 
 ### Claude Desktop
 

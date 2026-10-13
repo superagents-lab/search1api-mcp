@@ -33,6 +33,8 @@ Prefer OAuth or the Authorization header. Query-parameter credentials can be exp
 
 Remote MCP exposes `render_results` at the standard endpoint above. Data tools such as `search`, `news` and `ask` return results without automatically showing cards. When a source list helps, the model can select or combine existing results and pass them to `render_results`. It returns source cards in MCP Apps clients and a complete readable text list elsewhere. Rendering does not repeat a search or consume search credits; no UI URL parameter is required.
 
+Both HTTP and stdio advertise the square Search1API logo through standard `serverInfo.icons` metadata. The 512×512 PNG is served publicly at `https://mcp.search1api.com/assets/icon-square.png`, without authentication or redirects. The server card and registry manifest use the same icon. Clients choose whether to display it; this does not replace an icon stored separately by a plugin directory.
+
 See [the rendering contract](docs/render-results.md) for arguments, limits and fallback behavior. Existing npm installations update separately when a new package version is released.
 
 After changing the URL, reconnect or refresh the connector's tool definitions; clients may cache them. This URL setting applies to Remote MCP only; local stdio behavior is unchanged. See [MCP Apps UI](docs/mcp-ui.md) for details and release status.

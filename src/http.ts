@@ -22,6 +22,7 @@ import {
 } from "./server.js";
 import { ALL_TOOLS } from "./tools/index.js";
 import { PACKAGE_VERSION } from "./version.js";
+import { SERVER_ICON_FILE, SERVER_ICON_PATH, SERVER_ICONS } from "./branding.js";
 import { formatError, log } from "./utils.js";
 
 const API_BASE_URL =
@@ -171,6 +172,14 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
     res.type("text/plain").send(OPENAI_APPS_CHALLENGE_TOKEN);
   });
 
+  // MCP clients fetch implementation icons without cookies or credentials.
+  app.get(SERVER_ICON_PATH, (_req, res) => {
+    res
+      .set("Cache-Control", "public, max-age=3600")
+      .type("image/png")
+      .sendFile(SERVER_ICON_FILE);
+  });
+
   // OIDC scopes such as openid and offline_access belong to the client/AS
   // exchange; this resource does not require any resource-specific scope.
   const protectedResourceMetadata = {
@@ -205,6 +214,7 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
       .json({
         name: "Search1API",
         version: PACKAGE_VERSION,
+        icons: SERVER_ICONS,
         description:
           "Remote MCP server for Search1API. Exposes live web search, agentic search, news, page reading, sitemap discovery, and trending topics as tools for AI agents.",
         serverUrl: MCP_RESOURCE,
@@ -219,6 +229,7 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
           name: "Search1API",
           title: "Search1API MCP",
           version: PACKAGE_VERSION,
+          icons: SERVER_ICONS,
         },
         protocolVersion: "2025-06-18",
         transport: { type: "streamable-http", endpoint: MCP_RESOURCE },

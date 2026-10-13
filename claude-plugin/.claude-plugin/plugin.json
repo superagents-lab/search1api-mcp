@@ -1,8 +1,8 @@
 {
   "name": "search1api",
   "displayName": "Search1API",
-  "version": "1.1.0",
-  "description": "Search the live web, read full pages, follow the news, map a site's links, and see what's trending, with every answer backed by citable sources.",
+  "version": "1.1.1",
+  "description": "Search1API brings multi-engine search to AI agents, with Google, Bing, DuckDuckGo, Yahoo, and specialized sources including GitHub, Reddit, X, arXiv, Wikipedia, YouTube, WeChat, and Bilibili. Choose sources that fit your task and compare findings across them. Read full pages, search current news, discover site links, and explore GitHub and Hacker News trends. Browse selected results in interactive source cards, with expandable source lists and links to the original pages. Results include source URLs for citation.",
   "author": {
     "name": "Search1API",
     "url": "https://s1.dev"
@@ -16,7 +16,8 @@
     "research",
     "news",
     "crawl",
-    "citations"
+    "citations",
+    "multi-engine"
   ],
   "privacyPolicyUrl": "https://s1.dev/privacy",
   "documentationUrl": "https://s1.dev/docs/integrations/mcp",

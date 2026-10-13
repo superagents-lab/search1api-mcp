@@ -1,17 +1,19 @@
 ---
 name: search1api
 description: >
-  Live web research through the Search1API MCP server: search the web, read a page, find recent news, explore a site's links, and see what is trending, then answer with cited sources. Use whenever the user wants to search the web, look something up, research a topic, fact-check a claim, read or summarize a URL, check current news, explore a site, or see what is popular on GitHub or Hacker News. Trigger on phrases like "search for", "look up", "find out about", "what's happening with", "any news on", "latest on", "what does this link say", "read this page", "summarize this URL", "what's trending", "搜一下", "查一下", "最新消息", "总结这个链接", or when the user shares a bare URL.
+  Multi-engine web research through Search1API. Search general web engines and specialized sources such as GitHub, Reddit, X, arXiv, Wikipedia, YouTube, WeChat, and Bilibili; read pages, find news, explore site links, and answer with cited sources. Use when the user requests web research, a source-specific search, comparison across sources, fact-checking, current news, a URL summary, or GitHub and Hacker News trends.
 ---
 
 # Search1API
 
-Live web research through the Search1API MCP server bundled with this plugin.
+Multi-engine web research through the Search1API MCP server bundled with this plugin.
 
 ## Tools
 
-The Search1API MCP server exposes seven read-only tools. The host may prefix
-their names (for example `mcp__search1api__search`); the final names are:
+The current Search1API MCP server provides the tools below. Use the tools and
+parameter values actually exposed by the connected host; a host may still list
+an earlier server version. The host may prefix their names
+(for example `mcp__search1api__search`); the final names are:
 
 | User intent | Tool |
 |---|---|
@@ -26,7 +28,7 @@ their names (for example `mcp__search1api__search`); the final names are:
 If none of these tools are available, Search1API is not connected yet. Ask
 the user to sign in to Search1API from this plugin (in Codex, `/mcp` shows
 whether the server is connected) with their Search1API account. New accounts
-at https://s1.dev include free credits.
+can register at https://s1.dev.
 
 ## Read a link, or search?
 
@@ -36,16 +38,31 @@ at https://s1.dev include free credits.
   events), then `crawl` the most relevant results when snippets aren't enough.
 - The user asks how a site is organized or what pages it has → `sitemap`.
 
+## Choose engines and compare sources
+
+Use `search_service` to choose an engine or specialized source for each `search`
+call. General web engines and community or content sources serve different
+needs: use web engines for broad coverage, GitHub for repositories, Reddit or
+X for discussions, arXiv for papers, and YouTube or Bilibili for videos.
+
+For comparisons across sources, run a few targeted searches with different
+`search_service` values, then compare and deduplicate the findings while
+preserving their original URLs. A single `search` call uses one selected engine;
+it does not automatically search every supported source. Only request engine
+values present in the connected tool's schema.
+
 ## Search or ask?
 
 - You know the engine and keywords (a plain web lookup, "on Reddit", "GitHub
   repos") → `search`. It costs 1 credit and returns that engine's ranking.
-- The question spans communities or sources and you would otherwise run several
+- A question that spans communities or sources and would require several
   searches ("what are developers saying about X this month", "recent papers and
-  discussion on Y") → `ask` with the user's request in natural language. It
+  discussion on Y") → use `ask`, if available, with the user's request in natural
+  language. It
   picks up to five engines and a time window, drops off-topic results, and
   returns at most 10. It costs 5 credits, so don't use it for a quick lookup.
-  `intent` in the result shows which engines and window were used.
+  `intent` in the result shows which engines and window were used. If `ask` is
+  unavailable, use targeted `search` calls across suitable engines instead.
 
 ## Tune the parameters to the request
 
@@ -69,7 +86,7 @@ Don't call every tool with defaults. Match the request:
 - **Encyclopedia lookups** → `wikipedia`, or `grokipedia` with an English
   query. When the answer uses Grokipedia results, note "Powered by xAI".
 - **More results from the same engine** → `page: 2` and up, on `bing`, `bingcn`,
-  `baidu`, and `grokipedia` only.
+  and `grokipedia` only.
 
 `search_service` values for `search`: google, bing, bingcn, duckduckgo, yahoo,
 yandex, x, reddit, github, youtube, arxiv, wechat, bilibili, imdb, wikipedia,
@@ -107,13 +124,15 @@ credits. Prefer a few targeted
 
 ## Present selected sources
 
-Use `render_results` when the user wants to browse sources or a source-card list
-helps their task. First retrieve and select results, then pass those existing
+If `render_results` is available, use it when the user wants to browse sources
+or a source-card list helps their task. First retrieve and select results, then pass those existing
 results in the desired order; combine multiple searches when useful. Copy source
 titles and URLs, and use short original snippets rather than full crawled pages.
 Rendering and expanding cards do not perform searches or consume search credits.
 
 Skip rendering for intermediate research and when a normal cited answer is
-sufficient. Clients without UI support receive a complete readable source list.
+sufficient. If the host does not expose `render_results`, present the selected
+sources as a normal cited list. Clients without UI support receive a complete
+readable source list from the renderer.
 The remote endpoint needs no UI URL parameter. Rendering confirms that results
 are prepared, not that the host displayed the UI.

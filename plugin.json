@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "search1api",
   "version": "0.7.0",
-  "description": "Web search, agentic search, news, page crawl, sitemap, and trending topics via Search1API.",
+  "description": "Search1API brings multi-engine search to AI agents, with Google, Bing, DuckDuckGo, Yahoo, and specialized sources including GitHub, Reddit, X, arXiv, Wikipedia, YouTube, WeChat, and Bilibili. Choose sources that fit your task and compare findings across them. Read full pages, search current news, discover site links, and explore GitHub and Hacker News trends. Browse selected results in interactive source cards, with expandable source lists and links to the original pages. Results include source URLs for citation.",
   "author": {
     "name": "Search1API",
     "url": "https://s1.dev"
@@ -17,6 +17,7 @@
     "news",
     "crawl",
     "sitemap",
-    "trending"
+    "trending",
+    "multi-engine"
   ]
 }

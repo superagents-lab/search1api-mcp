@@ -1,7 +1,7 @@
 {
   "name": "search1api",
   "version": "1.2.1",
-  "description": "Search1API brings multi-engine search to AI agents, with Google, Bing, DuckDuckGo, Yahoo, and specialized sources including GitHub, Reddit, X, arXiv, Wikipedia, YouTube, WeChat, and Bilibili. Choose sources that fit your task and compare findings across them. Read full pages, search current news, discover site links, and explore GitHub and Hacker News trends. Results include source URLs for citation.",
+  "description": "Search1API brings multi-engine search to AI agents, with Google, Bing, DuckDuckGo, Yahoo, and specialized sources including GitHub, Reddit, X, arXiv, Wikipedia, YouTube, WeChat, and Bilibili. Choose sources that fit your task and compare findings across them. Read full pages, search current news, discover site links, and explore GitHub and Hacker News trends. Browse selected results in interactive source cards, with expandable source lists and links to the original pages. Results include source URLs for citation.",
   "author": {
     "name": "Search1API",
     "url": "https://s1.dev"
@@ -23,7 +23,7 @@
   "interface": {
     "displayName": "Search1API",
     "shortDescription": "Live web access for AI agents",
-    "longDescription": "Search1API brings multi-engine search to AI agents, with Google, Bing, DuckDuckGo, Yahoo, and specialized sources including GitHub, Reddit, X, arXiv, Wikipedia, YouTube, WeChat, and Bilibili. Choose sources that fit your task and compare findings across them. Read full pages, search current news, discover site links, and explore GitHub and Hacker News trends. Results include source URLs for citation.",
+    "longDescription": "Search1API brings multi-engine search to AI agents, with Google, Bing, DuckDuckGo, Yahoo, and specialized sources including GitHub, Reddit, X, arXiv, Wikipedia, YouTube, WeChat, and Bilibili. Choose sources that fit your task and compare findings across them. Read full pages, search current news, discover site links, and explore GitHub and Hacker News trends. Browse selected results in interactive source cards, with expandable source lists and links to the original pages. Results include source URLs for citation.",
     "developerName": "Search1API",
     "category": "Productivity",
     "capabilities": [
@@ -32,7 +32,8 @@
       "News search",
       "Web page retrieval",
       "Site link discovery",
-      "Trending topics"
+      "Trending topics",
+      "Interactive source cards"
     ],
     "websiteURL": "https://s1.dev",
     "privacyPolicyURL": "https://s1.dev/privacy",

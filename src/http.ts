@@ -127,7 +127,16 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
   const validateOrigin = originValidation(allowedOriginHostnames);
 
   const mcpHandler = createMcpHandler(
-    ({ authInfo }) => createMcpServer(toolCredential(authInfo)),
+    ({ authInfo, requestInfo }) => {
+      // Opt in per request, including discovery and resource reads. Never
+      // mutate shared tool definitions: other connections may choose no UI.
+      const ui = requestInfo
+        ? new URL(requestInfo.url).searchParams.getAll("ui")
+        : [];
+      return createMcpServer(toolCredential(authInfo), {
+        enableUi: ui.length === 1 && ui[0] === "true",
+      });
+    },
     {
       legacy: "stateless",
       onerror: (error) => log("MCP handler error:", error),
@@ -144,10 +153,10 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
     next();
   });
 
-  // The service root is documentation, not an MCP transport endpoint. Keep
+  // The service root points to the MCP product page. Keep
   // query parameters so bookmarked campaign/support links remain attributable.
   app.get("/", (req, res) => {
-    const target = new URL("https://s1.dev/docs/integrations/mcp");
+    const target = new URL("https://s1.dev/mcp-server");
     for (const [key, value] of Object.entries(req.query)) {
       if (typeof value === "string") {
         target.searchParams.append(key, value);

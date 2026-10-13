@@ -1,4 +1,5 @@
 import type { Tool } from "@modelcontextprotocol/server";
+import { SEARCH_UI_URI } from "../ui.js";
 
 type OAuthTool = Tool & {
   securitySchemes: Array<{
@@ -77,7 +78,7 @@ const SEARCH_OUTPUT_SCHEMA: NonNullable<Tool["outputSchema"]> = {
 // Search tool definition
 export const SEARCH_TOOL: OAuthTool = {
   name: "search",
-  title: "Search the web",
+  title: "Web search",
   description:
     "Search the live public web when the user needs current information, sources, or research. Returns citable results with id, title, URL, and text. Each result includes a URL that can be read in full.",
   ...AUTHENTICATED_READ_ONLY_WEB,
@@ -139,12 +140,22 @@ export const SEARCH_TOOL: OAuthTool = {
     required: ["query"],
   },
   outputSchema: SEARCH_OUTPUT_SCHEMA,
+  _meta: {
+    ...AUTHENTICATED_READ_ONLY_WEB._meta,
+    "openai/toolInvocation/invoking": "Searching the web…",
+    "openai/toolInvocation/invoked": "Search results",
+    ...(SEARCH_UI_URI && {
+      ui: { resourceUri: SEARCH_UI_URI },
+      // Legacy flat key for hosts that predate `_meta.ui`.
+      "ui/resourceUri": SEARCH_UI_URI,
+    }),
+  },
 };
 
 // News tool definition
 export const NEWS_TOOL: OAuthTool = {
   name: "news",
-  title: "Search current news",
+  title: "News search",
   description:
     "Search current news when the user asks about recent events, announcements, or coverage. Returns citable article results with title, URL, snippet, and optional extracted text.",
   ...AUTHENTICATED_READ_ONLY_WEB,
@@ -199,6 +210,15 @@ export const NEWS_TOOL: OAuthTool = {
     required: ["query"],
   },
   outputSchema: SEARCH_OUTPUT_SCHEMA,
+  _meta: {
+    ...AUTHENTICATED_READ_ONLY_WEB._meta,
+    "openai/toolInvocation/invoking": "Searching news…",
+    "openai/toolInvocation/invoked": "News results",
+    ...(SEARCH_UI_URI && {
+      ui: { resourceUri: SEARCH_UI_URI },
+      "ui/resourceUri": SEARCH_UI_URI,
+    }),
+  },
 };
 
 // Crawl tool definition

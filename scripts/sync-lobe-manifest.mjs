@@ -6,8 +6,9 @@ const packageJson = JSON.parse(
 const manifestUrl = new URL("../lhm.plugin.json", import.meta.url);
 const manifest = JSON.parse(readFileSync(manifestUrl, "utf8"));
 const { ALL_TOOLS } = await import("../build/tools/index.js");
+const { withoutUiMeta } = await import("../build/ui.js");
 
 manifest.version = packageJson.version;
-manifest.tools = ALL_TOOLS;
+manifest.tools = ALL_TOOLS.map(withoutUiMeta);
 
 writeFileSync(manifestUrl, `${JSON.stringify(manifest, null, 2)}\n`);

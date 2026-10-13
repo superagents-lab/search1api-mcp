@@ -44,7 +44,7 @@
   "tools": [
     {
       "name": "search",
-      "title": "Search the web",
+      "title": "Web search",
       "description": "Search the live public web when the user needs current information, sources, or research. Returns citable results with id, title, URL, and text. Each result includes a URL that can be read in full.",
       "securitySchemes": [
         {
@@ -58,7 +58,9 @@
             "type": "oauth2",
             "scopes": []
           }
-        ]
+        ],
+        "openai/toolInvocation/invoking": "Searching the web…",
+        "openai/toolInvocation/invoked": "Search results"
       },
       "annotations": {
         "readOnlyHint": true,
@@ -192,7 +194,7 @@
     },
     {
       "name": "news",
-      "title": "Search current news",
+      "title": "News search",
       "description": "Search current news when the user asks about recent events, announcements, or coverage. Returns citable article results with title, URL, snippet, and optional extracted text.",
       "securitySchemes": [
         {
@@ -206,7 +208,9 @@
             "type": "oauth2",
             "scopes": []
           }
-        ]
+        ],
+        "openai/toolInvocation/invoking": "Searching news…",
+        "openai/toolInvocation/invoked": "News results"
       },
       "annotations": {
         "readOnlyHint": true,

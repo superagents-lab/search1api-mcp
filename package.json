@@ -10,11 +10,15 @@
   },
   "files": [
     "build",
-    "server.json"
+    "ui/dist",
+    "server.json",
+    "THIRD_PARTY_NOTICES.md",
+    "docs"
   ],
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('build', { recursive: true, force: true })\" && tsc && node -e \"require('node:fs').chmodSync('build/index.js', '755')\"",
-    "test": "npm run build && node --test tests/*.test.mjs",
+    "build": "npm run build:ui && node -e \"require('node:fs').rmSync('build', { recursive: true, force: true })\" && tsc && node -e \"require('node:fs').chmodSync('build/index.js', '755')\"",
+    "build:ui": "node scripts/build-ui.mjs",
+    "test": "npm run build && npm --prefix ui run typecheck && node --test tests/*.test.mjs",
     "start": "node build/http.js",
     "prepack": "npm run build",
     "watch": "tsc --watch",

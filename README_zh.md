@@ -239,6 +239,6 @@ MIT
 
 ## UI 与第三方署名
 
-`search` 和 `news` 共用可选 MCP Apps 结果卡片，展示标题和来源域名。Remote 连接需要通过 `ui=true` 主动开启。不支持 UI 的客户端仍可读取原有文本和结构化结果。视图改编自 Swami Malode 的 [Rare UI](https://rareui.com) 组件，其 MIT + Commons Clause + Attribution 许可完整保留在 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+`render_results` 的 MCP Apps 视图把已有来源展示为带标题和域名的卡片。所有客户端同时收到完整文本和结构化结果列表。视图改编自 Swami Malode 的 [Rare UI](https://rareui.com) 组件，其 MIT + Commons Clause + Attribution 许可完整保留在 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
-配置与验收说明：[MCP Apps UI](docs/mcp-ui.md)。
+UI 配置、沙箱来源与发布检查：[MCP Apps UI](docs/mcp-ui.md)。

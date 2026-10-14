@@ -84,7 +84,17 @@ jobs:
           set -euo pipefail
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           SERVER_VERSION=$(node -p "require('./server.json').version")
-          NPM_VERSION=$(npm view "search1api-mcp@$PACKAGE_VERSION" version)
+          # npm takes a little while to serve a version it just accepted, and
+          # mcp-publisher also fetches the package from npm, so wait for it.
+          NPM_VERSION=""
+          for attempt in $(seq 1 30); do
+            NPM_VERSION=$(npm view "search1api-mcp@$PACKAGE_VERSION" version 2>/dev/null || true)
+            if [ "$NPM_VERSION" = "$PACKAGE_VERSION" ]; then
+              break
+            fi
+            echo "search1api-mcp@$PACKAGE_VERSION not visible on npm yet ($attempt/30)"
+            sleep 10
+          done
 
           test "$SERVER_VERSION" = "$PACKAGE_VERSION"
           test "$NPM_VERSION" = "$PACKAGE_VERSION"

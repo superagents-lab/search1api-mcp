@@ -29,6 +29,7 @@ const API_BASE_URL =
   process.env.SEARCH1API_API_URL || "https://api.search1api.com";
 const DEFAULT_AUTHORIZATION_SERVER = "https://clerk.s1.dev";
 const OAUTH_DISCOVERY_CACHE_CONTROL = "public, max-age=60, s-maxage=60";
+const OAUTH_SCOPES = ["offline_access"];
 const MCP_RESOURCE = "https://mcp.search1api.com/mcp";
 // Public by design: the OpenAI Platform reads it to verify that we own this
 // host before listing the plugin.
@@ -180,11 +181,16 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
       .sendFile(SERVER_ICON_FILE);
   });
 
-  // OIDC scopes such as openid and offline_access belong to the client/AS
-  // exchange; this resource does not require any resource-specific scope.
+  // The resource needs no scope of its own, but clients that find no scope
+  // here fall back to every scope the authorization server lists, including
+  // Clerk's public_metadata and private_metadata, which dynamically registered
+  // clients may not request. Search1API checks no scope on the token, and
+  // offline_access alone is in every dynamic client's grant, including clients
+  // registered before openid joined Clerk's defaults.
   const protectedResourceMetadata = {
     resource: MCP_RESOURCE,
     authorization_servers: [authorizationServer],
+    scopes_supported: OAUTH_SCOPES,
     bearer_methods_supported: ["header"],
     resource_documentation: "https://s1.dev/auth.md",
   };
@@ -433,7 +439,7 @@ function challenge(
   const errorParameter = error ? `, error="${error}"` : "";
   res.set(
     "WWW-Authenticate",
-    `Bearer resource_metadata="${MCP_RESOURCE_METADATA}"${errorParameter}`
+    `Bearer resource_metadata="${MCP_RESOURCE_METADATA}", scope="${OAUTH_SCOPES.join(" ")}"${errorParameter}`
   );
   res.status(401).json({
     jsonrpc: "2.0",

@@ -226,6 +226,10 @@ test("authenticates every MCP HTTP request before protocol handling", async (con
     missing.headers.get("www-authenticate") ?? "",
     /resource_metadata=/
   );
+  assert.match(
+    missing.headers.get("www-authenticate") ?? "",
+    /scope="offline_access"/
+  );
 
   const invalid = await request("Bearer invalid");
   assert.equal(invalid.status, 401);
@@ -239,7 +243,7 @@ test("authenticates every MCP HTTP request before protocol handling", async (con
   assert.deepEqual(validatedCredentials, ["invalid", "outage"]);
 });
 
-test("does not advertise OIDC session scopes as MCP resource scopes", async (context) => {
+test("advertises only the minimal OAuth scopes", async (context) => {
   const testServer = await startTestHttpServer();
 
   context.after(() => testServer.close());
@@ -260,7 +264,7 @@ test("does not advertise OIDC session scopes as MCP resource scopes", async (con
     response.headers.get("cache-control"),
     "public, max-age=60, s-maxage=60"
   );
-  assert.equal("scopes_supported" in metadata, false);
+  assert.deepEqual(metadata.scopes_supported, ["offline_access"]);
 });
 
 test("supports a coordinated OAuth issuer cutover", async (context) => {

@@ -65,6 +65,6 @@ The search cards are adapted from [Rare UI](https://rareui.com), copyright 2026 
 
 The HTTP deployment builds the UI together with the server. Deploying the remote service makes on-demand rendering available at the default URL without publishing a new npm package. Source cards are linked only to `render_results`.
 
-The npm package and local stdio clients update only when a new package version is published and installed. This remote-only rollout does not publish an npm version. A future npm release must choose a new package version and synchronize the registry/plugin manifests first.
+The npm package and local stdio clients update only when a new package version is published and installed. This remote-only rollout does not publish an npm version. A future npm release must choose a new package version with `npm version`, which copies it into `server.json`, `lhm.plugin.json`, `plugin.json` and `.cursor-plugin/plugin.json`; after editing `package.json` by hand, run `npm run sync:versions`. `npm test` fails while any of these manifests is behind.
 
 Public directory submission and production OAuth acceptance are separate from building and deploying the service. Verify the publisher domain, reviewer access and policy coverage before submitting an app.

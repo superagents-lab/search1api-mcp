@@ -25,7 +25,9 @@
     "watch": "tsc --watch",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js",
     "start:http": "node build/http.js",
-    "sync:manifest": "npm run build && node scripts/sync-lobe-manifest.mjs"
+    "sync:manifest": "npm run build && node scripts/sync-lobe-manifest.mjs",
+    "sync:versions": "node scripts/sync-versions.mjs",
+    "version": "node scripts/sync-versions.mjs && git add server.json lhm.plugin.json plugin.json .cursor-plugin/plugin.json"
   },
   "dependencies": {
     "@modelcontextprotocol/node": "^2.0.0",

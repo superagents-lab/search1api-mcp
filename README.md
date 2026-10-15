@@ -56,11 +56,9 @@ After changing the URL, reconnect or refresh the connector's tool definitions; c
 
 ### Claude.ai (Web)
 
-Settings > Connectors > Add custom connector:
+[Add Search1API to Claude](https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Search1API&connectorUrl=https%3A%2F%2Fmcp.search1api.com%2Fmcp): the link opens **Add custom connector** with the name and URL filled in. Click **Add**, then sign in with your Search1API account.
 
-```
-https://mcp.search1api.com/mcp?apiKey=YOUR_SEARCH1API_KEY
-```
+To add it by hand, go to **Customize > Connectors > Add custom connector**, enter `https://mcp.search1api.com/mcp`, and name it `Search1API`. Without a name, Claude labels the connector with the URL's host (`mcp.search1api.com`); you can rename it from the connector's menu.
 
 ### Cursor
 

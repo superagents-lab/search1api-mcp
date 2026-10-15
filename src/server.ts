@@ -51,7 +51,13 @@ export function createMcpServer(
   log("Creating Search1API MCP server");
 
   const server = new McpServer(
-    { name: "search1api-server", version: PACKAGE_VERSION, icons: SERVER_ICONS },
+    {
+      name: "search1api",
+      title: "Search1API",
+      version: PACKAGE_VERSION,
+      icons: SERVER_ICONS,
+      websiteUrl: "https://s1.dev",
+    },
     { instructions: "Use search, news, ask, crawl, sitemap and trending to retrieve data. Call render_results with selected existing results only when the user wants to browse sources or a visual list helps. Rendering never repeats a search or consumes search credits; unsupported UI clients receive a readable text list." }
   );
 

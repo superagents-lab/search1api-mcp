@@ -54,9 +54,9 @@ Remote MCP 和 `search1api-mcp` 0.8.0 及以上版本的本地 stdio 都提供 `
 
 ### Claude.ai（网页版）
 
-[一键添加到 Claude](https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Search1API&connectorUrl=https%3A%2F%2Fmcp.search1api.com%2Fmcp)：链接会打开 **Add custom connector** 对话框，名称和 URL 已预填，点 **Add** 后用 Search1API 账号登录即可。
+从 [Claude 连接器目录](https://claude.ai/directory/search1api) 安装 Search1API，点 **Connect**，用 Search1API 账号登录即可。
 
-手动添加：进入 **Customize > Connectors > Add custom connector**，填入 `https://mcp.search1api.com/mcp`，名称填 `Search1API`。不填名称时，Claude 会用 URL 的主机名（`mcp.search1api.com`）作为连接器名，之后可在连接器菜单里改名。
+不要通过 **Add custom connector** 手动添加 `https://mcp.search1api.com/mcp`：那样会另建一个自定义连接器，不填名称时 Claude 会用主机名 `mcp.search1api.com` 作为它的名字。
 
 ### Cursor
 

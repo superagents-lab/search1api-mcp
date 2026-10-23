@@ -139,6 +139,36 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
     onerror: (error) => log("MCP Node adapter error:", error),
   });
 
+  // Refusals (Host/Origin checks, rejected credentials, protocol errors) are
+  // otherwise silent, which leaves a failing directory scanner undiagnosable.
+  // The bare 401 challenge that starts OAuth discovery is routine and skipped.
+  app.use("/mcp", (req, res, next) => {
+    res.on("finish", () => {
+      const hasCredential = extractCredential(req) !== undefined;
+      if (res.statusCode < 400 || (res.statusCode === 401 && !hasCredential)) {
+        return;
+      }
+      const rpcMethod =
+        req.body && typeof req.body === "object" && "method" in req.body
+          ? String(req.body.method)
+          : undefined;
+      log(
+        `MCP request refused: ${req.method} ${res.statusCode}`,
+        JSON.stringify({
+          rpcMethod,
+          credential: hasCredential,
+          origin: req.headers.origin,
+          host: req.headers.host,
+          protocolVersion: req.headers["mcp-protocol-version"],
+          accept: req.headers.accept,
+          contentType: req.headers["content-type"],
+          userAgent: req.headers["user-agent"],
+        })
+      );
+    });
+    next();
+  });
+
   app.use((req, res, next) => {
     if (!validateHost(req, res)) {
       return;

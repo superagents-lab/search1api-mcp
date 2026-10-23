@@ -364,7 +364,7 @@ test("rejects untrusted Origins before authentication", async (context) => {
   assert.equal(validationCalls, 0);
 });
 
-test("logs refused MCP requests but not the bare OAuth challenge", async (context) => {
+test("logs refused MCP requests and connection attempts, not bare pings", async (context) => {
   const testServer = await startTestHttpServer(async () => null);
   const logged = [];
   const originalError = console.error;
@@ -390,6 +390,16 @@ test("logs refused MCP requests but not the bare OAuth challenge", async (contex
     body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "ping" }),
   });
   await new Promise((resolve) => setImmediate(resolve));
+
+  await discoverRequest(testServer.url, { anonymous: true });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const connections = logged.filter((line) => line.includes("MCP connection"));
+  assert.equal(connections.length, 1);
+  assert.match(connections[0], /POST 401/);
+  assert.match(connections[0], /"rpcMethod":"server\/discover"/);
+  assert.match(connections[0], /"client":"search1api-origin-test"/);
+  assert.match(connections[0], /"credential":false/);
 
   const refusals = logged.filter((line) => line.includes("MCP request refused"));
   assert.equal(refusals.length, 2);

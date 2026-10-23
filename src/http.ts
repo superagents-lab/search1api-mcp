@@ -141,21 +141,32 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
 
   // Refusals (Host/Origin checks, rejected credentials, protocol errors) are
   // otherwise silent, which leaves a failing directory scanner undiagnosable.
-  // The bare 401 challenge that starts OAuth discovery is routine and skipped.
+  // The bare 401 challenge that starts OAuth discovery is routine and only
+  // logged when it opens a connection (initialize or server/discover), so each
+  // client's connect attempt shows up once with its outcome.
   app.use("/mcp", (req, res, next) => {
     res.on("finish", () => {
       const hasCredential = extractCredential(req) !== undefined;
-      if (res.statusCode < 400 || (res.statusCode === 401 && !hasCredential)) {
+      const body: Record<string, any> | undefined =
+        req.body && typeof req.body === "object" ? req.body : undefined;
+      const rpcMethod =
+        body && "method" in body ? String(body.method) : undefined;
+      const opensConnection =
+        rpcMethod === "initialize" || rpcMethod === "server/discover";
+      const refused =
+        res.statusCode >= 400 && !(res.statusCode === 401 && !hasCredential);
+      if (!refused && !opensConnection) {
         return;
       }
-      const rpcMethod =
-        req.body && typeof req.body === "object" && "method" in req.body
-          ? String(req.body.method)
-          : undefined;
+      const clientInfo =
+        body?.params?.clientInfo ??
+        body?.params?._meta?.["io.modelcontextprotocol/clientInfo"];
       log(
-        `MCP request refused: ${req.method} ${res.statusCode}`,
+        `${refused ? "MCP request refused" : "MCP connection"}: ${req.method} ${res.statusCode}`,
         JSON.stringify({
           rpcMethod,
+          client:
+            typeof clientInfo?.name === "string" ? clientInfo.name : undefined,
           credential: hasCredential,
           origin: req.headers.origin,
           host: req.headers.host,

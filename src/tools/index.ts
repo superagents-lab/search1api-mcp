@@ -32,6 +32,8 @@ const AUTHENTICATED_READ_ONLY_WEB: Pick<
   annotations: {
     readOnlyHint: true,
     destructiveHint: false,
+    // Every call is billed in credits, so a repeat is not free of effects.
+    idempotentHint: false,
     openWorldHint: true,
   },
 };
@@ -94,7 +96,7 @@ export const SEARCH_TOOL: OAuthTool = {
         type: "number",
         minimum: 1,
         maximum: 50,
-        description: "Maximum number of results to return",
+        description: "How many results to return; keep it small unless the user wants a broad survey",
         default: 10,
       },
       search_service: {
@@ -107,13 +109,13 @@ export const SEARCH_TOOL: OAuthTool = {
         type: "number",
         minimum: 1,
         maximum: 100,
-        description: "Results page to fetch; only bing, bingcn, baidu, and grokipedia paginate, other engines ignore it",
+        description: "Fetch later pages of the same query; only bing, bingcn, baidu, and grokipedia paginate, other engines ignore it",
         default: 1,
       },
       crawl_results: {
         type: "number",
         minimum: 0,
-        description: "Number of top results to retrieve as full pages. Each successful page retrieval adds 1 credit to the base 1-credit search request",
+        description: "How many top results to also read in full, so their text holds the whole page. Each successful page retrieval adds 1 credit to the base 1-credit search request",
         default: 0,
       },
       include_sites: {
@@ -166,12 +168,12 @@ export const NEWS_TOOL: OAuthTool = {
         type: "number",
         minimum: 1,
         maximum: 50,
-        description: "Maximum number of articles to return",
+        description: "How many articles to return; keep it small unless the user wants broad coverage",
         default: 10,
       },
       search_service: {
         type: "string",
-        description: "News search engine to use",
+        description: "News engine to use; hackernews returns Hacker News discussions instead of publisher articles",
         default: "bing",
         enum: ["google", "bing", "duckduckgo", "yahoo", "hackernews"],
       },
@@ -199,7 +201,7 @@ export const NEWS_TOOL: OAuthTool = {
       },
       time_range: {
         type: "string",
-        description: "Optional recency window; use day for breaking news",
+        description: "Only return articles published within this window; use day for breaking news",
         enum: ["day", "week", "month", "year"],
       },
     },
@@ -218,7 +220,7 @@ export const CRAWL_TOOL: OAuthTool = {
   name: "crawl",
   title: "Read a web page",
   description:
-    "Extract the readable title and full text from a public URL supplied by the user or returned by search.",
+    "Read a public web page supplied by the user or returned by search. Returns its title, URL, and main content as text, so you can answer from the full page instead of a snippet.",
   ...AUTHENTICATED_READ_ONLY_WEB,
   inputSchema: {
     type: "object",
@@ -226,7 +228,7 @@ export const CRAWL_TOOL: OAuthTool = {
       url: {
         type: "string",
         format: "uri",
-        description: "Public HTTP or HTTPS URL to retrieve",
+        description: "Address of the page to read, such as a link the user shared or a URL from search results",
       },
     },
     required: ["url"],
@@ -245,7 +247,7 @@ export const SITEMAP_TOOL: OAuthTool = {
   name: "sitemap",
   title: "Discover links on a site",
   description:
-    "Discover related public links from a page or domain when the user wants to explore a site's structure or available pages.",
+    "Discover related public links from a page or domain when the user wants to explore a site's structure or available pages. Returns a list of absolute URLs found on that site, which can then be read with crawl.",
   ...AUTHENTICATED_READ_ONLY_WEB,
   inputSchema: {
     type: "object",
@@ -263,6 +265,7 @@ export const SITEMAP_TOOL: OAuthTool = {
     properties: {
       links: {
         type: "array",
+        description: "Absolute URLs discovered on the site, without titles or page content",
         items: {
           type: "string",
           format: "uri",
@@ -278,14 +281,14 @@ export const TRENDING_TOOL: OAuthTool = {
   name: "trending",
   title: "Explore trending topics",
   description:
-    "List currently trending repositories or stories from GitHub or Hacker News when the user asks what is popular now.",
+    "List currently trending repositories or stories from GitHub or Hacker News when the user asks what is popular now. Returns each item's title, URL, and a short description when the platform provides one.",
   ...AUTHENTICATED_READ_ONLY_WEB,
   inputSchema: {
     type: "object",
     properties: {
       search_service: {
         type: "string",
-        description: "Platform whose trending items should be returned",
+        description: "github for trending repositories, hackernews for top stories",
         enum: ["github", "hackernews"],
         default: "github",
       },
@@ -293,7 +296,7 @@ export const TRENDING_TOOL: OAuthTool = {
         type: "number",
         minimum: 1,
         maximum: 50,
-        description: "Maximum number of trending items to return",
+        description: "How many trending items to return",
         default: 10,
       },
     },
@@ -304,12 +307,13 @@ export const TRENDING_TOOL: OAuthTool = {
     properties: {
       results: {
         type: "array",
+        description: "Trending items reported by the platform",
         items: {
           type: "object",
           properties: {
-            title: { type: "string" },
-            url: { type: "string", format: "uri" },
-            description: { type: "string" },
+            title: { type: "string", description: "Repository name or story headline" },
+            url: { type: "string", format: "uri", description: "Link to the repository or story" },
+            description: { type: "string", description: "Repository summary or story context, when available" },
           },
           required: ["title", "url"],
         },

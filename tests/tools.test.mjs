@@ -108,6 +108,8 @@ test("advertises directory-ready metadata and structured outputs", () => {
     assert.equal(tool.annotations?.readOnlyHint, true);
     assert.equal(tool.annotations?.destructiveHint, false);
     assert.equal(tool.annotations?.openWorldHint, tool.name !== "render_results");
+    // Billed tools are not idempotent; only the credit-free renderer is.
+    assert.equal(tool.annotations?.idempotentHint, tool.name === "render_results");
     assert.deepEqual(tool.securitySchemes, [
       { type: "oauth2", scopes: [] },
     ]);
@@ -445,6 +447,20 @@ test("allows explicitly trusted Origins", async (context) => {
 
   assert.equal(response.status, 200);
   assert.equal(validationCalls, 1);
+});
+
+test("answers the root with 200 so the widget domain responds, forwarding to the product page", async (context) => {
+  const testServer = await startTestHttpServer();
+
+  context.after(() => testServer.close());
+
+  const response = await fetch(new URL("/?utm_source=a&ref=b", testServer.url), { redirect: "manual" });
+
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type"), /^text\/html/);
+  assert.equal(response.headers.get("link"), '<https://s1.dev/mcp-server>; rel="canonical"');
+  const body = await response.text();
+  assert.match(body, /<meta http-equiv="refresh" content="0; url=https:\/\/s1\.dev\/mcp-server\?utm_source=a&amp;ref=b">/);
 });
 
 test("tells crawlers to skip the transport host", async (context) => {

@@ -189,6 +189,8 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
 
   // The service root points to the MCP product page. Keep
   // query parameters so bookmarked campaign/support links remain attributable.
+  // Answer 200 rather than redirecting: this origin is the declared widget
+  // domain, and directory checks treat a redirect as an unreachable domain.
   app.get("/", (req, res) => {
     const target = new URL("https://s1.dev/mcp-server");
     for (const [key, value] of Object.entries(req.query)) {
@@ -196,7 +198,19 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
         target.searchParams.append(key, value);
       }
     }
-    res.redirect(301, target.toString());
+    // URLSearchParams percent-encodes quotes and angle brackets; only & needs escaping.
+    const href = target.toString().replaceAll("&", "&amp;");
+    res
+      .status(200)
+      .set("Link", '<https://s1.dev/mcp-server>; rel="canonical"')
+      .type("html")
+      .send(
+        `<!doctype html><html lang="en"><head><meta charset="utf-8">` +
+          `<title>Search1API MCP Server</title>` +
+          `<link rel="canonical" href="https://s1.dev/mcp-server">` +
+          `<meta http-equiv="refresh" content="0; url=${href}">` +
+          `</head><body><p>Search1API MCP Server. Continue to <a href="${href}">s1.dev/mcp-server</a>.</p></body></html>`
+      );
   });
 
   // /mcp is a transport endpoint that answers nothing without a credential,

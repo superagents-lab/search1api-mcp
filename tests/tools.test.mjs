@@ -87,6 +87,10 @@ test("serves MCP 2026-07-28 clients over HTTP", async (context) => {
   assert.equal(client.getNegotiatedProtocolVersion(), "2026-07-28");
   assert.deepEqual(client.getServerVersion()?.icons, EXPECTED_ICONS);
   assert.equal(client.getServerVersion()?.version, packageJson.version);
+  assert.equal(
+    client.getServerVersion()?.description,
+    JSON.parse(readFileSync(new URL("../server.json", import.meta.url), "utf8")).description
+  );
   assert.deepEqual(
     result.tools.map((tool) => tool.name),
     EXPECTED_TOOLS

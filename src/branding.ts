@@ -13,3 +13,7 @@ export const SERVER_ICONS = [
     sizes: ["512x512"],
   },
 ];
+
+// Same wording as server.json, advertised in the MCP handshake serverInfo.
+export const SERVER_DESCRIPTION =
+  "Web search, agentic search, news, page retrieval, sitemaps, and trending topics through Search1API.";

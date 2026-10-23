@@ -17,7 +17,7 @@ import {
 } from "./ui.js";
 import { formatError, log } from "./utils.js";
 import { PACKAGE_VERSION } from "./version.js";
-import { SERVER_ICONS } from "./branding.js";
+import { SERVER_DESCRIPTION, SERVER_ICONS } from "./branding.js";
 
 export type CredentialProvider = string | (() => string | undefined);
 
@@ -57,6 +57,7 @@ export function createMcpServer(
       version: PACKAGE_VERSION,
       icons: SERVER_ICONS,
       websiteUrl: "https://s1.dev",
+      description: SERVER_DESCRIPTION,
     },
     { instructions: "Use search, news, ask, crawl, sitemap and trending to retrieve data. Call render_results with selected existing results only when the user wants to browse sources or a visual list helps. Rendering never repeats a search or consumes search credits; unsupported UI clients receive a readable text list." }
   );

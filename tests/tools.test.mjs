@@ -364,6 +364,44 @@ test("rejects untrusted Origins before authentication", async (context) => {
   assert.equal(validationCalls, 0);
 });
 
+test("logs refused MCP requests but not the bare OAuth challenge", async (context) => {
+  const testServer = await startTestHttpServer(async () => null);
+  const logged = [];
+  const originalError = console.error;
+  console.error = (...args) => logged.push(args.join(" "));
+  context.after(async () => {
+    console.error = originalError;
+    await testServer.close();
+  });
+
+  await discoverRequest(testServer.url, { origin: "https://attacker.example" });
+  await rawHttpRequest(testServer.url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" }),
+  });
+  await rawHttpRequest(testServer.url, {
+    method: "POST",
+    headers: {
+      authorization: "Bearer rejected-token",
+      "content-type": "application/json",
+      "user-agent": "scanner-test",
+    },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "ping" }),
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const refusals = logged.filter((line) => line.includes("MCP request refused"));
+  assert.equal(refusals.length, 2);
+  assert.match(refusals[0], /POST 403/);
+  assert.match(refusals[0], /attacker\.example/);
+  assert.match(refusals[1], /POST 401/);
+  assert.match(refusals[1], /"rpcMethod":"ping"/);
+  assert.match(refusals[1], /"credential":true/);
+  assert.match(refusals[1], /scanner-test/);
+  assert.ok(!refusals.join("\n").includes("rejected-token"));
+});
+
 test("allows non-browser MCP requests without an Origin", async (context) => {
   let validationCalls = 0;
   const testServer = await startTestHttpServer(async (credential) => {

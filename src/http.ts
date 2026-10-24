@@ -102,6 +102,53 @@ export async function validateCredential(
   return { credential, principal };
 }
 
+// A rejected credential stays rejected for this long before it is checked
+// again. Clients holding a dead token keep retrying (one ping every few
+// seconds, indefinitely), and without the cache each retry costs a /usage
+// call that the API counts as a 401. Matches the gateway's own cache of
+// failed token validation.
+const REJECTED_CREDENTIAL_TTL_MS = 60_000;
+const REJECTED_CREDENTIAL_MAX_ENTRIES = 10_000;
+
+/**
+ * Remember credentials the API rejected so repeat attempts are refused
+ * locally. Only rejections are cached: accepted credentials are still checked
+ * on every exchange, and validation outages (thrown errors) are not cached.
+ */
+export function cacheRejectedCredentials(
+  validator: CredentialValidator,
+  {
+    ttlMs = REJECTED_CREDENTIAL_TTL_MS,
+    maxEntries = REJECTED_CREDENTIAL_MAX_ENTRIES,
+    now = Date.now,
+  }: { ttlMs?: number; maxEntries?: number; now?: () => number } = {}
+): CredentialValidator {
+  const rejectedUntil = new Map<string, number>();
+  return async (credential) => {
+    const key = createHash("sha256").update(credential).digest("hex");
+    const expiresAt = rejectedUntil.get(key);
+    if (expiresAt !== undefined) {
+      if (expiresAt > now()) {
+        return null;
+      }
+      rejectedUntil.delete(key);
+    }
+
+    const authenticated = await validator(credential);
+    if (!authenticated) {
+      // Map keeps insertion order, so the first key is the oldest entry.
+      if (rejectedUntil.size >= maxEntries) {
+        const oldest = rejectedUntil.keys().next().value;
+        if (oldest !== undefined) {
+          rejectedUntil.delete(oldest);
+        }
+      }
+      rejectedUntil.set(key, now() + ttlMs);
+    }
+    return authenticated;
+  };
+}
+
 /**
  * Build the HTTP application without starting a listener.
  *
@@ -116,7 +163,9 @@ export async function validateCredential(
  */
 export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
   const app = express();
-  const credentialValidator = options.validateCredential ?? validateCredential;
+  const credentialValidator = cacheRejectedCredentials(
+    options.validateCredential ?? validateCredential
+  );
   const authorizationServer = normalizeAuthorizationServer(
     options.authorizationServer ??
       process.env.OAUTH_AUTHORIZATION_SERVER ??

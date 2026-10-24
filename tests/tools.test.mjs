@@ -24,7 +24,9 @@ import { serveStdio } from "@modelcontextprotocol/server/stdio";
 
 process.env.SEARCH1API_KEY = "test-key";
 
-const { createHttpApp } = await import("../build/http.js");
+const { cacheRejectedCredentials, createHttpApp } = await import(
+  "../build/http.js"
+);
 const { createMcpServer, unauthenticatedCredential } = await import(
   "../build/server.js"
 );
@@ -247,6 +249,66 @@ test("authenticates every MCP HTTP request before protocol handling", async (con
   const unavailable = await request("Bearer outage");
   assert.equal(unavailable.status, 503);
   assert.deepEqual(validatedCredentials, ["invalid", "outage"]);
+});
+
+test("refuses a rejected credential locally until the cache entry expires", async () => {
+  let clock = 0;
+  const calls = [];
+  const validator = cacheRejectedCredentials(
+    async (credential) => {
+      calls.push(credential);
+      if (credential === "outage") {
+        throw new Error("validation unavailable");
+      }
+      return credential.startsWith("dead")
+        ? null
+        : { credential, principal: `test:${credential}` };
+    },
+    { ttlMs: 60_000, maxEntries: 2, now: () => clock }
+  );
+
+  assert.equal(await validator("dead-1"), null);
+  clock = 59_999;
+  assert.equal(await validator("dead-1"), null);
+  assert.deepEqual(calls, ["dead-1"]);
+
+  clock = 60_000;
+  assert.equal(await validator("dead-1"), null);
+  assert.deepEqual(calls, ["dead-1", "dead-1"]);
+
+  // Accepted credentials and outages are checked every time.
+  await validator("live");
+  await validator("live");
+  await assert.rejects(validator("outage"));
+  await assert.rejects(validator("outage"));
+  assert.deepEqual(calls.slice(2), ["live", "live", "outage", "outage"]);
+
+  // The oldest rejection is evicted once the cache is full.
+  await validator("dead-2");
+  await validator("dead-3");
+  calls.length = 0;
+  await validator("dead-1");
+  await validator("dead-3");
+  assert.deepEqual(calls, ["dead-1"]);
+});
+
+test("does not re-validate a rejected credential on every MCP request", async (context) => {
+  const validatedCredentials = [];
+  const testServer = await startTestHttpServer(async (credential) => {
+    validatedCredentials.push(credential);
+    return null;
+  });
+  context.after(() => testServer.close());
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await discoverRequest(testServer.url);
+    assert.equal(response.status, 401);
+    assert.match(
+      response.headers.get("www-authenticate") ?? "",
+      /error="invalid_token"/
+    );
+  }
+  assert.deepEqual(validatedCredentials, ["test-key"]);
 });
 
 test("advertises only the minimal OAuth scopes", async (context) => {

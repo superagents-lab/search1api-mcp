@@ -21,6 +21,7 @@ import {
   UNAUTHENTICATED,
 } from "./server.js";
 import { ALL_TOOLS } from "./tools/index.js";
+import { renderSetupPage } from "./setup-page.js";
 import { PACKAGE_VERSION } from "./version.js";
 import { SERVER_ICON_FILE, SERVER_ICON_PATH, SERVER_ICONS } from "./branding.js";
 import { formatError, log } from "./utils.js";
@@ -323,6 +324,28 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
       return;
     }
     next();
+  });
+
+  // A person opening the MCP URL in a browser gets setup instructions instead
+  // of a bare 401. MCP clients POST, or GET with text/event-stream, and still
+  // draw the challenge that starts OAuth; a presented credential always goes
+  // through to the transport.
+  app.get("/mcp", (req, res, next) => {
+    const accept = req.headers.accept ?? "";
+    if (
+      extractCredential(req) !== undefined ||
+      accept.includes("text/event-stream") ||
+      !accept.includes("text/html")
+    ) {
+      next();
+      return;
+    }
+    res
+      .status(200)
+      .set("Cache-Control", "public, max-age=300")
+      .set("Vary", "Accept, Authorization")
+      .type("html")
+      .send(renderSetupPage());
   });
 
   app.use(express.json());

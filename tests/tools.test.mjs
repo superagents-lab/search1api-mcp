@@ -463,6 +463,27 @@ test("answers the root with 200 so the widget domain responds, forwarding to the
   assert.match(body, /<meta http-equiv="refresh" content="0; url=https:\/\/s1\.dev\/mcp-server\?utm_source=a&amp;ref=b">/);
 });
 
+test("shows browsers setup instructions at the MCP URL but still challenges MCP clients", async (context) => {
+  const testServer = await startTestHttpServer();
+
+  context.after(() => testServer.close());
+
+  const mcpUrl = new URL("/mcp", testServer.url);
+  const page = await fetch(mcpUrl, { headers: { accept: "text/html,application/xhtml+xml,*/*;q=0.8" } });
+  assert.equal(page.status, 200);
+  assert.match(page.headers.get("content-type"), /^text\/html/);
+  const body = await page.text();
+  assert.match(body, /https:\/\/mcp\.search1api\.com\/mcp/);
+  assert.match(body, /<code>render_results<\/code>/);
+
+  const stream = await fetch(mcpUrl, { headers: { accept: "text/event-stream" } });
+  assert.equal(stream.status, 401);
+  assert.match(stream.headers.get("www-authenticate"), /resource_metadata=/);
+
+  const bare = await fetch(mcpUrl);
+  assert.equal(bare.status, 401);
+});
+
 test("tells crawlers to skip the transport host", async (context) => {
   const testServer = await startTestHttpServer();
 

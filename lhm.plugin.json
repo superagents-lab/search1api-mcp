@@ -79,7 +79,7 @@
             "type": "number",
             "minimum": 1,
             "maximum": 50,
-            "description": "How many results to return; keep it small unless the user wants a broad survey",
+            "description": "How many sources the answer needs; a handful suits most questions, more suits a broad survey",
             "default": 10
           },
           "search_service": {
@@ -109,13 +109,13 @@
             "type": "number",
             "minimum": 1,
             "maximum": 100,
-            "description": "Fetch later pages of the same query; only bing, bingcn, baidu, and grokipedia paginate, other engines ignore it",
+            "description": "Which page of results to fetch when the first page was not enough; only bing, bingcn, and grokipedia paginate, other engines ignore it",
             "default": 1
           },
           "crawl_results": {
             "type": "number",
             "minimum": 0,
-            "description": "How many top results to also read in full, so their text holds the whole page. Each successful page retrieval adds 1 credit to the base 1-credit search request",
+            "description": "How many top results to also read in full, so their text holds the whole page instead of a snippet. Each successful page retrieval adds 1 credit to the base 1-credit search request",
             "default": 0
           },
           "include_sites": {
@@ -136,7 +136,7 @@
           },
           "time_range": {
             "type": "string",
-            "description": "Optional recency window for time-sensitive searches",
+            "description": "Restrict results to those published recently, for time-sensitive questions; leave unset for evergreen topics",
             "enum": [
               "day",
               "week",
@@ -154,6 +154,7 @@
         "properties": {
           "results": {
             "type": "array",
+            "description": "Matching sources, most relevant first; read any url in full with crawl",
             "items": {
               "type": "object",
               "properties": {
@@ -230,7 +231,7 @@
             "type": "number",
             "minimum": 1,
             "maximum": 50,
-            "description": "How many articles to return; keep it small unless the user wants broad coverage",
+            "description": "How many articles the answer needs; a handful suits most questions, more suits broad coverage",
             "default": 10
           },
           "search_service": {
@@ -287,6 +288,7 @@
         "properties": {
           "results": {
             "type": "array",
+            "description": "Matching sources, most relevant first; read any url in full with crawl",
             "items": {
               "type": "object",
               "properties": {
@@ -396,7 +398,8 @@
               "id",
               "title",
               "url"
-            ]
+            ],
+            "description": "The page that was read; text holds its main content"
           }
         },
         "required": [
@@ -487,7 +490,7 @@
         "properties": {
           "search_service": {
             "type": "string",
-            "description": "github for trending repositories, hackernews for top stories",
+            "description": "Where to look: GitHub for popular open-source repositories, Hacker News for stories developers are discussing",
             "enum": [
               "github",
               "hackernews"
@@ -498,7 +501,7 @@
             "type": "number",
             "minimum": 1,
             "maximum": 50,
-            "description": "How many trending items to return",
+            "description": "How many trending items the answer needs, from the top of the list",
             "default": 10
           }
         },
@@ -543,8 +546,8 @@
     },
     {
       "name": "ask",
-      "title": "Ask across the right sources",
-      "description": "Describe what you are looking for in natural language when you do not know which source to search. Search1API picks up to five engines (web, Hacker News, Reddit, GitHub, X, arXiv, Wikipedia, and more), infers a time window from phrases such as \"this week\", and returns at most 10 relevant results ranked by relevance. Costs 5 credits; use search when you already know the engine.",
+      "title": "Ask across sources",
+      "description": "Search several sources at once from a natural-language request when the right engine is unclear. Search1API picks up to five engines (web, Hacker News, Reddit, GitHub, X, arXiv, Wikipedia, and more) and a time window from the wording, then returns up to 10 citable results ranked by relevance, plus the intent it used and any engines that failed. Costs 5 credits per call; use search when you already know the engine.",
       "securitySchemes": [
         {
           "type": "oauth2",
@@ -571,7 +574,7 @@
           "query": {
             "type": "string",
             "maxLength": 500,
-            "description": "The request in natural language; platform hints (\"on Reddit\", \"papers\") and time hints (\"this week\") steer the search"
+            "description": "What the user is looking for, in their own words; naming a platform (\"on Reddit\", \"papers\") or a period (\"this week\") steers which engines and time window are used"
           }
         },
         "required": [
@@ -586,19 +589,22 @@
             "description": "Keywords, engines, and time window that were used",
             "properties": {
               "search_query": {
-                "type": "string"
+                "type": "string",
+                "description": "Keywords sent to the engines"
               },
               "sources": {
                 "type": "array",
                 "items": {
                   "type": "string"
-                }
+                },
+                "description": "Engines that were searched"
               },
               "time_range": {
                 "type": [
                   "string",
                   "null"
                 ],
+                "description": "Recency window inferred from the request, or null for any time",
                 "enum": [
                   "day",
                   "week",
@@ -616,6 +622,7 @@
           },
           "results": {
             "type": "array",
+            "description": "Up to 10 sources across the chosen engines, most relevant first",
             "items": {
               "type": "object",
               "properties": {
@@ -710,7 +717,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 120,
-            "description": "Optional human-readable list heading. Defaults to Results."
+            "description": "Heading shown above the cards, such as the research topic"
           },
           "results": {
             "type": "array",
@@ -724,30 +731,30 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 2048,
-                  "description": "Copy the original result ID when available. If absent, the server uses its URL."
+                  "description": "The id from the original search result; the server falls back to the URL when there is none"
                 },
                 "title": {
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 300,
-                  "description": "Copy the source title; do not invent or rewrite factual source titles."
+                  "description": "Source title exactly as the search returned it; never invent or rewrite it"
                 },
                 "url": {
                   "type": "string",
                   "format": "uri",
                   "pattern": "^https?://",
                   "maxLength": 2048,
-                  "description": "Absolute HTTP(S) source URL, without embedded credentials."
+                  "description": "Link to the source as the search returned it, never one carrying credentials"
                 },
                 "text": {
                   "type": "string",
                   "maxLength": 2000,
-                  "description": "Optional source snippet or faithful excerpt, not a full page or model-written answer."
+                  "description": "Snippet or faithful excerpt from the source, not a full page or a model-written answer"
                 },
                 "metadata": {
                   "type": "object",
                   "additionalProperties": true,
-                  "description": "Optional original JSON source metadata. Do not put credentials or UI implementation details here."
+                  "description": "Metadata from the original result, such as the publication date; never credentials or UI details"
                 }
               },
               "required": [
@@ -789,30 +796,30 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 2048,
-                  "description": "Copy the original result ID when available. If absent, the server uses its URL."
+                  "description": "The id from the original search result; the server falls back to the URL when there is none"
                 },
                 "title": {
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 300,
-                  "description": "Copy the source title; do not invent or rewrite factual source titles."
+                  "description": "Source title exactly as the search returned it; never invent or rewrite it"
                 },
                 "url": {
                   "type": "string",
                   "format": "uri",
                   "pattern": "^https?://",
                   "maxLength": 2048,
-                  "description": "Absolute HTTP(S) source URL, without embedded credentials."
+                  "description": "Link to the source as the search returned it, never one carrying credentials"
                 },
                 "text": {
                   "type": "string",
                   "maxLength": 2000,
-                  "description": "Optional source snippet or faithful excerpt, not a full page or model-written answer."
+                  "description": "Snippet or faithful excerpt from the source, not a full page or a model-written answer"
                 },
                 "metadata": {
                   "type": "object",
                   "additionalProperties": true,
-                  "description": "Optional original JSON source metadata. Do not put credentials or UI implementation details here."
+                  "description": "Metadata from the original result, such as the publication date; never credentials or UI details"
                 }
               },
               "required": [

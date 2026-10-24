@@ -72,6 +72,7 @@ const SEARCH_OUTPUT_SCHEMA: NonNullable<Tool["outputSchema"]> = {
   properties: {
     results: {
       type: "array",
+      description: "Matching sources, most relevant first; read any url in full with crawl",
       items: CITABLE_RESULT_SCHEMA,
     },
   },
@@ -96,7 +97,7 @@ export const SEARCH_TOOL: OAuthTool = {
         type: "number",
         minimum: 1,
         maximum: 50,
-        description: "How many results to return; keep it small unless the user wants a broad survey",
+        description: "How many sources the answer needs; a handful suits most questions, more suits a broad survey",
         default: 10,
       },
       search_service: {
@@ -109,13 +110,13 @@ export const SEARCH_TOOL: OAuthTool = {
         type: "number",
         minimum: 1,
         maximum: 100,
-        description: "Fetch later pages of the same query; only bing, bingcn, baidu, and grokipedia paginate, other engines ignore it",
+        description: "Which page of results to fetch when the first page was not enough; only bing, bingcn, and grokipedia paginate, other engines ignore it",
         default: 1,
       },
       crawl_results: {
         type: "number",
         minimum: 0,
-        description: "How many top results to also read in full, so their text holds the whole page. Each successful page retrieval adds 1 credit to the base 1-credit search request",
+        description: "How many top results to also read in full, so their text holds the whole page instead of a snippet. Each successful page retrieval adds 1 credit to the base 1-credit search request",
         default: 0,
       },
       include_sites: {
@@ -136,7 +137,7 @@ export const SEARCH_TOOL: OAuthTool = {
       },
       time_range: {
         type: "string",
-        description: "Optional recency window for time-sensitive searches",
+        description: "Restrict results to those published recently, for time-sensitive questions; leave unset for evergreen topics",
         enum: ["day", "week", "month", "year"],
       },
     },
@@ -168,7 +169,7 @@ export const NEWS_TOOL: OAuthTool = {
         type: "number",
         minimum: 1,
         maximum: 50,
-        description: "How many articles to return; keep it small unless the user wants broad coverage",
+        description: "How many articles the answer needs; a handful suits most questions, more suits broad coverage",
         default: 10,
       },
       search_service: {
@@ -236,7 +237,10 @@ export const CRAWL_TOOL: OAuthTool = {
   outputSchema: {
     type: "object",
     properties: {
-      result: CITABLE_RESULT_SCHEMA,
+      result: {
+        ...CITABLE_RESULT_SCHEMA,
+        description: "The page that was read; text holds its main content",
+      },
     },
     required: ["result"],
   },
@@ -288,7 +292,7 @@ export const TRENDING_TOOL: OAuthTool = {
     properties: {
       search_service: {
         type: "string",
-        description: "github for trending repositories, hackernews for top stories",
+        description: "Where to look: GitHub for popular open-source repositories, Hacker News for stories developers are discussing",
         enum: ["github", "hackernews"],
         default: "github",
       },
@@ -296,7 +300,7 @@ export const TRENDING_TOOL: OAuthTool = {
         type: "number",
         minimum: 1,
         maximum: 50,
-        description: "How many trending items to return",
+        description: "How many trending items the answer needs, from the top of the list",
         default: 10,
       },
     },
@@ -326,9 +330,9 @@ export const TRENDING_TOOL: OAuthTool = {
 // Ask tool definition
 export const ASK_TOOL: OAuthTool = {
   name: "ask",
-  title: "Ask across the right sources",
+  title: "Ask across sources",
   description:
-    "Describe what you are looking for in natural language when you do not know which source to search. Search1API picks up to five engines (web, Hacker News, Reddit, GitHub, X, arXiv, Wikipedia, and more), infers a time window from phrases such as \"this week\", and returns at most 10 relevant results ranked by relevance. Costs 5 credits; use search when you already know the engine.",
+    "Search several sources at once from a natural-language request when the right engine is unclear. Search1API picks up to five engines (web, Hacker News, Reddit, GitHub, X, arXiv, Wikipedia, and more) and a time window from the wording, then returns up to 10 citable results ranked by relevance, plus the intent it used and any engines that failed. Costs 5 credits per call; use search when you already know the engine.",
   ...AUTHENTICATED_READ_ONLY_WEB,
   inputSchema: {
     type: "object",
@@ -336,7 +340,7 @@ export const ASK_TOOL: OAuthTool = {
       query: {
         type: "string",
         maxLength: 500,
-        description: "The request in natural language; platform hints (\"on Reddit\", \"papers\") and time hints (\"this week\") steer the search",
+        description: "What the user is looking for, in their own words; naming a platform (\"on Reddit\", \"papers\") or a period (\"this week\") steers which engines and time window are used",
       },
     },
     required: ["query"],
@@ -348,10 +352,11 @@ export const ASK_TOOL: OAuthTool = {
         type: "object",
         description: "Keywords, engines, and time window that were used",
         properties: {
-          search_query: { type: "string" },
-          sources: { type: "array", items: { type: "string" } },
+          search_query: { type: "string", description: "Keywords sent to the engines" },
+          sources: { type: "array", items: { type: "string" }, description: "Engines that were searched" },
           time_range: {
             type: ["string", "null"],
+            description: "Recency window inferred from the request, or null for any time",
             enum: ["day", "week", "month", "year", null],
           },
         },
@@ -359,6 +364,7 @@ export const ASK_TOOL: OAuthTool = {
       },
       results: {
         type: "array",
+        description: "Up to 10 sources across the chosen engines, most relevant first",
         items: CITABLE_RESULT_SCHEMA,
       },
       errors: {

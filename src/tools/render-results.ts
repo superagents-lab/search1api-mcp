@@ -8,7 +8,7 @@ export const RENDER_INPUT_SCHEMA: Tool["inputSchema"] = {
       "type": "string",
       "minLength": 1,
       "maxLength": 120,
-      "description": "Optional human-readable list heading. Defaults to Results."
+      "description": "Heading shown above the cards, such as the research topic"
     },
     "results": {
       "type": "array",
@@ -22,30 +22,30 @@ export const RENDER_INPUT_SCHEMA: Tool["inputSchema"] = {
             "type": "string",
             "minLength": 1,
             "maxLength": 2048,
-            "description": "Copy the original result ID when available. If absent, the server uses its URL."
+            "description": "The id from the original search result; the server falls back to the URL when there is none"
           },
           "title": {
             "type": "string",
             "minLength": 1,
             "maxLength": 300,
-            "description": "Copy the source title; do not invent or rewrite factual source titles."
+            "description": "Source title exactly as the search returned it; never invent or rewrite it"
           },
           "url": {
             "type": "string",
             "format": "uri",
             "pattern": "^https?://",
             "maxLength": 2048,
-            "description": "Absolute HTTP(S) source URL, without embedded credentials."
+            "description": "Link to the source as the search returned it, never one carrying credentials"
           },
           "text": {
             "type": "string",
             "maxLength": 2000,
-            "description": "Optional source snippet or faithful excerpt, not a full page or model-written answer."
+            "description": "Snippet or faithful excerpt from the source, not a full page or a model-written answer"
           },
           "metadata": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Optional original JSON source metadata. Do not put credentials or UI implementation details here."
+            "description": "Metadata from the original result, such as the publication date; never credentials or UI details"
           }
         },
         "required": [
@@ -88,30 +88,30 @@ export const RENDER_OUTPUT_SCHEMA: NonNullable<Tool["outputSchema"]> = {
             "type": "string",
             "minLength": 1,
             "maxLength": 2048,
-            "description": "Copy the original result ID when available. If absent, the server uses its URL."
+            "description": "The id from the original search result; the server falls back to the URL when there is none"
           },
           "title": {
             "type": "string",
             "minLength": 1,
             "maxLength": 300,
-            "description": "Copy the source title; do not invent or rewrite factual source titles."
+            "description": "Source title exactly as the search returned it; never invent or rewrite it"
           },
           "url": {
             "type": "string",
             "format": "uri",
             "pattern": "^https?://",
             "maxLength": 2048,
-            "description": "Absolute HTTP(S) source URL, without embedded credentials."
+            "description": "Link to the source as the search returned it, never one carrying credentials"
           },
           "text": {
             "type": "string",
             "maxLength": 2000,
-            "description": "Optional source snippet or faithful excerpt, not a full page or model-written answer."
+            "description": "Snippet or faithful excerpt from the source, not a full page or a model-written answer"
           },
           "metadata": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Optional original JSON source metadata. Do not put credentials or UI implementation details here."
+            "description": "Metadata from the original result, such as the publication date; never credentials or UI details"
           }
         },
         "required": [

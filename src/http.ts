@@ -37,6 +37,10 @@ const MCP_RESOURCE = "https://mcp.search1api.com/mcp";
 const OPENAI_APPS_CHALLENGE_TOKEN = "edGbvSAg00ELU99x45v2SjrDPJNLa1gPwjuvlflUJnM";
 const MCP_RESOURCE_METADATA =
   "https://mcp.search1api.com/.well-known/oauth-protected-resource/mcp";
+// Clerk reports an outage as "not authenticated", so a rejection is kept only
+// briefly: a valid token caught by one is locked out for at most this long.
+const REJECTION_TTL_MS = 60_000;
+const MAX_REMEMBERED_REJECTIONS = 1_000;
 
 export type AuthenticatedCredential = {
   credential: string;
@@ -103,6 +107,46 @@ export async function validateCredential(
 }
 
 /**
+ * Answer a recently rejected credential without validating it again.
+ *
+ * Clients that ignore the invalid_token challenge keep retrying the same
+ * credential, and each retry would otherwise be a /usage call the API records
+ * as a 401. In October 2026 one copilot-cli install pinged every six seconds
+ * with a rejected token, a third of the API's errors that day. Validation
+ * failures (outages) are not remembered; only a definite rejection is.
+ */
+export function rememberRejections(
+  validate: CredentialValidator,
+  now: () => number = Date.now
+): CredentialValidator {
+  // Keyed by digest so the map never holds a presented credential.
+  const rejectedUntil = new Map<string, number>();
+
+  return async (credential) => {
+    const key = createHash("sha256").update(credential).digest("hex");
+    const until = rejectedUntil.get(key);
+    if (until !== undefined) {
+      if (until > now()) {
+        return null;
+      }
+      rejectedUntil.delete(key);
+    }
+
+    const authenticated = await validate(credential);
+    if (!authenticated) {
+      if (rejectedUntil.size >= MAX_REMEMBERED_REJECTIONS) {
+        const oldest = rejectedUntil.keys().next().value;
+        if (oldest !== undefined) {
+          rejectedUntil.delete(oldest);
+        }
+      }
+      rejectedUntil.set(key, now() + REJECTION_TTL_MS);
+    }
+    return authenticated;
+  };
+}
+
+/**
  * Build the HTTP application without starting a listener.
  *
  * A single v2 handler serves the 2026-07-28 protocol and the SDK's default
@@ -116,7 +160,9 @@ export async function validateCredential(
  */
 export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
   const app = express();
-  const credentialValidator = options.validateCredential ?? validateCredential;
+  const credentialValidator = rememberRejections(
+    options.validateCredential ?? validateCredential
+  );
   const authorizationServer = normalizeAuthorizationServer(
     options.authorizationServer ??
       process.env.OAUTH_AUTHORIZATION_SERVER ??

@@ -24,7 +24,7 @@ import { serveStdio } from "@modelcontextprotocol/server/stdio";
 
 process.env.SEARCH1API_KEY = "test-key";
 
-const { createHttpApp } = await import("../build/http.js");
+const { createHttpApp, rememberRejections } = await import("../build/http.js");
 const { createMcpServer, unauthenticatedCredential } = await import(
   "../build/server.js"
 );
@@ -247,6 +247,72 @@ test("authenticates every MCP HTTP request before protocol handling", async (con
   const unavailable = await request("Bearer outage");
   assert.equal(unavailable.status, 503);
   assert.deepEqual(validatedCredentials, ["invalid", "outage"]);
+});
+
+test("answers a retried rejected credential without validating it again", async (context) => {
+  const validatedCredentials = [];
+  const testServer = await startTestHttpServer(async (credential) => {
+    validatedCredentials.push(credential);
+    if (credential === "invalid") {
+      return null;
+    }
+    if (credential === "outage") {
+      throw new Error("validation unavailable");
+    }
+    return { credential, principal: `test:${credential}` };
+  });
+
+  context.after(() => testServer.close());
+
+  const ping = (credential) =>
+    fetch(testServer.url, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${credential}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" }),
+    });
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const retried = await ping("invalid");
+    assert.equal(retried.status, 401);
+    assert.match(
+      retried.headers.get("www-authenticate") ?? "",
+      /error="invalid_token"/
+    );
+  }
+  assert.equal((await ping("outage")).status, 503);
+  assert.equal((await ping("outage")).status, 503);
+
+  assert.deepEqual(validatedCredentials, ["invalid", "outage", "outage"]);
+});
+
+test("validates a rejected credential again once the rejection expires", async () => {
+  let clock = 0;
+  const validated = [];
+  let accept = false;
+  const validate = rememberRejections(async (credential) => {
+    validated.push(credential);
+    return accept ? { credential, principal: `test:${credential}` } : null;
+  }, () => clock);
+
+  assert.equal(await validate("token"), null);
+  clock += 59_999;
+  assert.equal(await validate("token"), null);
+  assert.deepEqual(validated, ["token"]);
+
+  accept = true;
+  clock += 1;
+  assert.deepEqual(await validate("token"), {
+    credential: "token",
+    principal: "test:token",
+  });
+  assert.deepEqual(await validate("token"), {
+    credential: "token",
+    principal: "test:token",
+  });
+  assert.deepEqual(validated, ["token", "token", "token"]);
 });
 
 test("advertises only the minimal OAuth scopes", async (context) => {

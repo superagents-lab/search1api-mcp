@@ -1,5 +1,10 @@
 name: Release
 
+# Run this workflow on main (workflow_dispatch) to release the version in
+# package.json: it publishes to npm, creates the v<version> GitHub Release and
+# syncs the MCP Registry. Every step skips what is already published, so a
+# re-run only fills in what is missing. Publishing a GitHub Release by hand
+# still works too.
 on:
   release:
     types: [published]
@@ -22,6 +27,9 @@ jobs:
       - run: npm audit --prefix ui --audit-level=high
       - run: npm test
       - run: npm pack --dry-run
+      - name: Release only from main
+        if: github.event_name == 'workflow_dispatch'
+        run: test "$GITHUB_REF" = refs/heads/main
       - name: Verify release tag
         if: github.event_name == 'release'
         env:
@@ -33,7 +41,6 @@ jobs:
 
   publish:
     needs: verify
-    if: github.event_name == 'release'
     runs-on: ubuntu-latest
     environment:
       name: npm
@@ -58,17 +65,32 @@ jobs:
             npm publish
           fi
 
+  # A Release created with GITHUB_TOKEN does not start this workflow again.
+  github-release:
+    needs: publish
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v$(node -p "require('./package.json').version")"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "$TAG already has a GitHub Release"
+          else
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+          fi
+
   # Needs the npm package to exist first, so it can verify the published
   # version matches the manifests. Chained after publish (which itself waits
   # on the npm environment approval), it can no longer race the npm release
-  # the way the old standalone mcp-registry.yml did. A skipped publish means
-  # a workflow_dispatch re-sync: run it as long as verify passed.
+  # the way the old standalone mcp-registry.yml did.
   registry:
     needs: [verify, publish]
-    if: >-
-      !cancelled() &&
-      needs.verify.result == 'success' &&
-      (needs.publish.result == 'success' || needs.publish.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

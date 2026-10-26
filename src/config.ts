@@ -49,5 +49,9 @@ export const API_CONFIG = {
   }
 } as const;
 
+// Agentback project public key for the send_feedback tool. It can only submit
+// feedback, so it ships with the package like any other public client key.
+export const AGENTBACK_PROJECT_KEY = 'af_97385a84ecf95968db2403eb6ef165ddcd8ee6716c1b2ceb72f1a35a69e52b8e';
+
 // Export API key
 export { API_KEY };

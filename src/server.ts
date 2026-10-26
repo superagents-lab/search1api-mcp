@@ -5,6 +5,10 @@ import {
   fromJsonSchema,
   type JsonSchemaType,
 } from "@modelcontextprotocol/server";
+import { Agentback } from "agentback";
+import { attachToMcp } from "agentback/mcp";
+import { AGENTBACK_PROJECT_KEY } from "./config.js";
+import { feedbackIdentity } from "./feedback.js";
 import { handleReadResource, RESOURCES } from "./resources.js";
 import { handleToolCall } from "./tools/handlers.js";
 import { ALL_TOOLS } from "./tools/index.js";
@@ -95,6 +99,17 @@ export function createMcpServer(
     );
   }
 
+  // Lets agents report wrong results, unresolved errors or missing
+  // capabilities. Reporting is free and spends no Search1API credit.
+  attachToMcp(
+    server,
+    new Agentback({ projectKey: AGENTBACK_PROJECT_KEY }),
+    {
+      product: "Search1API",
+      identify: () => feedbackIdentity(resolveCredential(credential)),
+    }
+  );
+
   for (const resource of RESOURCES) {
     server.registerResource(
       resource.name,
@@ -154,6 +169,15 @@ export function createMcpServer(
   }
 
   return server;
+}
+
+// Unlike tool calls, feedback goes out without a credential when none resolves.
+function resolveCredential(credential?: CredentialProvider): string | undefined {
+  try {
+    return typeof credential === "function" ? credential() : credential;
+  } catch {
+    return undefined;
+  }
 }
 
 function normalizeProtocolError(context: string, error: unknown): ProtocolError {

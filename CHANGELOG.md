@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.0 - 2026-10-26
+
+- Add `send_feedback` to both remote HTTP and local stdio, built on the public Agentback SDK. Agents can report wrong results, unresolved errors and missing capabilities to the Search1API team at no credit cost. With a Search1API credential the report carries the signed account; without one it is sent anonymously.
+- Advertise a one-line server description in `serverInfo` and require MCP server SDK 2.3.1.
+- Declare tool idempotency and describe what each tool returns.
+- Name the server Search1API for hosts that read the server name.
+
 ## 0.8.0 - 2026-10-14
 
 - Add `render_results` to both remote HTTP and local stdio. Present selected existing sources as interactive cards in MCP Apps hosts, with a complete text list and structured JSON for every client. Rendering does not repeat a search or consume search credits.

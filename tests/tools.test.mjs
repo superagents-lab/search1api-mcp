@@ -51,6 +51,7 @@ const EXPECTED_TOOLS = [
   "ask",
   "render_results",
 ];
+const EXPECTED_SERVED_TOOLS = [...EXPECTED_TOOLS, "send_feedback"];
 
 const EXPECTED_ICONS = [{
   src: "https://mcp.search1api.com/assets/icon-square.png",
@@ -95,7 +96,7 @@ test("serves MCP 2026-07-28 clients over HTTP", async (context) => {
   );
   assert.deepEqual(
     result.tools.map((tool) => tool.name),
-    EXPECTED_TOOLS
+    EXPECTED_SERVED_TOOLS
   );
   assert.equal(result.tools[0].title, "Web search");
   assert.deepEqual(result.tools[0]._meta.securitySchemes, [
@@ -145,7 +146,7 @@ test("keeps 2025-era clients working through the stateless fallback", async (con
   assert.equal(client.getServerVersion()?.version, packageJson.version);
   assert.deepEqual(
     result.tools.map((tool) => tool.name),
-    EXPECTED_TOOLS
+    EXPECTED_SERVED_TOOLS
   );
 });
 
@@ -172,7 +173,7 @@ test("serves MCP 2026-07-28 clients over the stdio entry", async (context) => {
   assert.deepEqual(client.getServerVersion()?.icons, EXPECTED_ICONS);
   assert.deepEqual(
     result.tools.map((tool) => tool.name),
-    EXPECTED_TOOLS
+    EXPECTED_SERVED_TOOLS
   );
 });
 
@@ -627,6 +628,67 @@ test("answers malformed request bodies with JSON-RPC, not HTML", async (context)
   assert.equal(typeof payload.error.code, "number");
 });
 
+async function sendFeedbackThrough(context, credential) {
+  const sent = [];
+  context.mock.method(globalThis, "fetch", async (url, init) => {
+    if (String(url) === "https://api.search1api.com/feedback/identity") {
+      sent.push({ url: String(url), authorization: init.headers.Authorization });
+      return Response.json({ account: "user_123", signature: "a".repeat(64) });
+    }
+    sent.push({ url: String(url), body: JSON.parse(init.body) });
+    return Response.json({ id: "fb_1", status: "new" }, { status: 201 });
+  });
+  const [clientTransport, serverTransport] =
+    InMemoryTransport.createLinkedPair();
+  const serverHandle = serveStdio(() => createMcpServer(credential), {
+    transport: serverTransport,
+  });
+  const client = new Client(
+    { name: "search1api-feedback-test", version: "1.0.0" },
+    { versionNegotiation: { mode: { pin: "2026-07-28" } } }
+  );
+  context.after(async () => {
+    await client.close();
+    await serverHandle.close();
+  });
+  await client.connect(clientTransport);
+  const result = await client.callTool({
+    name: "send_feedback",
+    arguments: { message: "bingcn returned no results", category: "bug" },
+  });
+  assert.equal(result.isError, undefined, JSON.stringify(result));
+  return sent;
+}
+
+test("sends agent feedback under the signed-in Search1API account", async (context) => {
+  const sent = await sendFeedbackThrough(context, "test-key");
+
+  assert.deepEqual(sent[0], {
+    url: "https://api.search1api.com/feedback/identity",
+    authorization: "Bearer test-key",
+  });
+  assert.match(sent[1].url, /^https:\/\/agentback\.app\/f\/af_[a-f0-9]{64}$/);
+  assert.deepEqual(sent[1].body, {
+    message: "bingcn returned no results",
+    category: "bug",
+    agent: { name: "search1api-feedback-test 1.0.0" },
+    source: "mcp",
+    account: "user_123",
+    account_signature: "a".repeat(64),
+  });
+});
+
+test("sends agent feedback anonymously without a credential", async (context) => {
+  const sent = await sendFeedbackThrough(
+    context,
+    unauthenticatedCredential("SEARCH1API_KEY is not set.")
+  );
+
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].body.account, undefined);
+  assert.equal(sent[0].body.source, "mcp");
+});
+
 test("serves tool metadata over stdio without a configured API key", async (context) => {
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
@@ -648,7 +710,7 @@ test("serves tool metadata over stdio without a configured API key", async (cont
 
   assert.deepEqual(
     (await client.listTools()).tools.map((tool) => tool.name),
-    EXPECTED_TOOLS
+    EXPECTED_SERVED_TOOLS
   );
 
   // The key is present in this process' environment, so a tool call that
@@ -749,7 +811,7 @@ for (const mode of [{ pin: "2026-07-28" }, "legacy"]) {
     };
     const client = await connect();
     const { tools } = await client.listTools();
-    assert.deepEqual(tools.map(tool => tool.name), EXPECTED_TOOLS);
+    assert.deepEqual(tools.map(tool => tool.name), EXPECTED_SERVED_TOOLS);
     const uri = tools.find(tool => tool.name === "render_results")._meta.ui.resourceUri;
     assert.equal(tools.filter(tool => tool._meta?.ui?.resourceUri).length, 1);
     assert.ok((await client.listResources()).resources.some(resource => resource.uri === uri));

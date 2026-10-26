@@ -211,6 +211,17 @@ Agentic search: describe the need in natural language and Search1API picks up to
 |-----------|----------|-------------|
 | `query` | Yes | The request in natural language, up to 500 characters |
 
+### send_feedback
+Report a wrong, empty or incomplete result, an error you could not resolve, documentation that did not match behavior, or a missing capability to the Search1API team. Free; it spends no credits. When the server has a Search1API credential, the report is linked to that account so the team can follow up. Do not include credentials or private data.
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `message` | Yes | What went wrong or what was missing, up to 4000 characters |
+| `intent` | No | What you were trying to accomplish |
+| `category` | No | bug, feature_request, docs, other |
+| `request_id` | No | Request id of the call that had the problem |
+| `model` | No | Your model name |
+
 ## Version History
 
 - v0.7.0: New `ask` tool for agentic search. `search` adds the `bingcn`, `yandex`, and `grokipedia` engines and a `page` parameter; `search` and `news` accept `time_range: "week"` and pass `published_date`, GitHub, and Hacker News fields through in result `metadata`

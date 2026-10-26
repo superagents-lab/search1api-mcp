@@ -207,6 +207,17 @@ npx skills add superagents-lab/search1api-cli
 |------|------|------|
 | `query` | 是 | 自然语言描述的需求，最多 500 字符 |
 
+### send_feedback
+向 Search1API 团队反馈问题：结果错误、为空或不完整，无法解决的报错，文档与实际行为不符，或缺少的能力。免费，不消耗积分。服务端有 Search1API 凭证时，反馈会关联到对应账号，方便团队跟进。请勿包含凭证或隐私数据。
+
+| 参数 | 必需 | 说明 |
+|------|------|------|
+| `message` | 是 | 出了什么问题或缺少什么，最多 4000 字符 |
+| `intent` | 否 | 当时想完成的任务 |
+| `category` | 否 | bug、feature_request、docs、other |
+| `request_id` | 否 | 出问题那次调用的请求 ID |
+| `model` | 否 | 你的模型名称 |
+
 ## 版本历史
 
 - v0.7.0: 新增智能搜索工具 `ask`。`search` 新增 `bingcn`、`yandex`、`grokipedia` 引擎和 `page` 参数；`search` 与 `news` 支持 `time_range: "week"`，并在结果 `metadata` 中透传 `published_date` 以及 GitHub、Hacker News 字段

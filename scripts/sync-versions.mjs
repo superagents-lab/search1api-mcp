@@ -1,7 +1,7 @@
 // Copy package.json's version into every manifest that ships it, so a
-// release can't leave a listing (Cursor, Agent Plugins, LobeHub, MCP
-// Registry) on an old version. `npm version` runs this automatically;
-// `--check` only reports drift and exits non-zero.
+// release can't leave a listing (Cursor, Antigravity, Agent Plugins,
+// LobeHub, MCP Registry) on an old version. `npm version` runs this
+// automatically; `--check` only reports drift and exits non-zero.
 //
 // The Claude and Codex plugins are versioned on their own and are not
 // listed here.
@@ -24,6 +24,10 @@ export const VERSIONED_MANIFESTS = [
   { path: "plugin.json", fields: (manifest) => [["version", manifest, "version"]] },
   {
     path: ".cursor-plugin/plugin.json",
+    fields: (manifest) => [["version", manifest, "version"]],
+  },
+  {
+    path: ".antigravity-plugin/plugin.json",
     fields: (manifest) => [["version", manifest, "version"]],
   },
 ];

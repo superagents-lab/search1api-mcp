@@ -1,0 +1,32 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "search1api",
+  "displayName": "Search1API",
+  "version": "0.9.0",
+  "description": "Multi-engine web search for agents: Google, Bing, GitHub, Reddit, X, arXiv, WeChat and more. Read full pages, find news, and cite every source.",
+  "logo": "assets/logo-antigravity.svg",
+  "suggestedPrompts": [
+    "Compare what GitHub, Reddit, and X say about the best Rust web framework, with sources",
+    "Find this week's top news on AI coding agents and cite each source",
+    "Show today's trending GitHub repositories and Hacker News stories"
+  ],
+  "skills": [
+    "./.antigravity-plugin/skills"
+  ],
+  "author": {
+    "name": "SuperAgents",
+    "url": "https://s1.dev"
+  },
+  "homepage": "https://s1.dev/docs/integrations/antigravity",
+  "repository": "https://github.com/superagents-lab/search1api-mcp",
+  "license": "MIT",
+  "keywords": [
+    "search",
+    "web-search",
+    "research",
+    "news",
+    "crawl",
+    "citations",
+    "multi-engine"
+  ]
+}

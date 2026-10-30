@@ -81,6 +81,16 @@ Or configure manually:
 }
 ```
 
+### Antigravity
+
+Install as an Antigravity plugin: `.antigravity-plugin/` holds the manifest, the Search1API skill, and a Marketplace README, and the plugin reuses the root `mcp.json` (Remote MCP with OAuth). Install it straight from GitHub, then enable it and sign in when the browser opens:
+
+```bash
+agy plugin install https://github.com/superagents-lab/search1api-mcp
+```
+
+For local testing, run `agy plugin validate --strict .` and `agy plugin install .` from a checkout.
+
 ### VS Code
 
 ```json

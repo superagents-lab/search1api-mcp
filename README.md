@@ -3,7 +3,7 @@
 [![Smithery](https://img.shields.io/badge/Smithery-listed-6C5CE7)](https://smithery.ai/servers/superagents-lab/search1api-mcp)
 [![Glama](https://img.shields.io/badge/Glama-listed-6C5CE7)](https://glama.ai/mcp/servers/superagents-lab/search1api-mcp)
 
-[中文文档](./README_zh.md)
+[中文文档](./README_zh.md) | [Deutsch](./README_de.md)
 
 The official MCP server for [Search1API](https://s1.dev/?utm_source=mcp) — web search, news, page retrieval, sitemap discovery, and trending topics in one API.
 

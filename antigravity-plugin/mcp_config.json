@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "search1api": {
+      "serverUrl": "https://mcp.search1api.com/mcp"
+    }
+  }
+}

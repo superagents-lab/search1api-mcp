@@ -27,7 +27,7 @@ export const VERSIONED_MANIFESTS = [
     fields: (manifest) => [["version", manifest, "version"]],
   },
   {
-    path: ".antigravity-plugin/plugin.json",
+    path: "antigravity-plugin/plugin.json",
     fields: (manifest) => [["version", manifest, "version"]],
   },
 ];

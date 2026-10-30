@@ -79,6 +79,16 @@ Remote MCP 和 `search1api-mcp` 0.8.0 及以上版本的本地 stdio 都提供 `
 }
 ```
 
+### Antigravity
+
+作为 Antigravity 插件安装：`antigravity-plugin/` 里是插件清单、`mcp_config.json`（远程 MCP，OAuth 登录）、Search1API skill 和市场展示用的 README。可以直接从 GitHub 安装，然后在浏览器里登录即可：
+
+```bash
+agy plugin install https://github.com/superagents-lab/search1api-mcp/tree/main/antigravity-plugin
+```
+
+本地测试：在仓库目录里运行 `agy plugin validate --strict ./antigravity-plugin` 和 `agy plugin install ./antigravity-plugin`。
+
 ### VS Code
 
 ```json

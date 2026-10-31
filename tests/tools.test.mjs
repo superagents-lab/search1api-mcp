@@ -98,6 +98,15 @@ test("serves MCP 2026-07-28 clients over HTTP", async (context) => {
     result.tools.map((tool) => tool.name),
     EXPECTED_SERVED_TOOLS
   );
+  assert.deepEqual(
+    result.tools.find((tool) => tool.name === "send_feedback").annotations,
+    {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    }
+  );
   assert.equal(result.tools[0].title, "Web search");
   assert.deepEqual(result.tools[0]._meta.securitySchemes, [
     { type: "oauth2", scopes: [] },

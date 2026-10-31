@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Declare all four annotation hints on `send_feedback` as explicit booleans (`readOnlyHint: false`, `destructiveHint: false`, `idempotentHint: false`, `openWorldHint: true`), as plugin directory reviews require.
+
 ## 0.9.0 - 2026-10-26
 
 - Add `send_feedback` to both remote HTTP and local stdio, built on the public Agentback SDK. Agents can report wrong results, unresolved errors and missing capabilities to the Search1API team at no credit cost. With a Search1API credential the report carries the signed account; without one it is sent anonymously.

@@ -2,6 +2,7 @@ import {
   INTERNAL_ERROR,
   McpServer,
   ProtocolError,
+  type RegisteredTool,
   fromJsonSchema,
   type JsonSchemaType,
 } from "@modelcontextprotocol/server";
@@ -101,14 +102,25 @@ export function createMcpServer(
 
   // Lets agents report wrong results, unresolved errors or missing
   // capabilities. Reporting is free and spends no Search1API credit.
-  attachToMcp(
+  const feedbackTool = attachToMcp(
     server,
     new Agentback({ projectKey: AGENTBACK_PROJECT_KEY }),
     {
       product: "Search1API",
       identify: () => feedbackIdentity(resolveCredential(credential)),
     }
-  );
+  ) as RegisteredTool;
+  // Directory reviews (ChatGPT, Claude) expect all three hints as explicit
+  // booleans; the SDK leaves destructiveHint unset. A report only adds a
+  // record, so it is a non-destructive, non-idempotent write.
+  feedbackTool.update({
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
+  });
 
   for (const resource of RESOURCES) {
     server.registerResource(

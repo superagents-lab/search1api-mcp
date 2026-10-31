@@ -3,7 +3,7 @@
 [![Smithery](https://img.shields.io/badge/Smithery-listed-6C5CE7)](https://smithery.ai/servers/superagents-lab/search1api-mcp)
 [![Glama](https://img.shields.io/badge/Glama-listed-6C5CE7)](https://glama.ai/mcp/servers/superagents-lab/search1api-mcp)
 
-[English](./README.md)
+[English](./README.md) | [Deutsch](./README_de.md)
 
 [Search1API](https://s1.dev/?utm_source=mcp) 官方 MCP 服务 — 一个 API 搞定搜索、新闻、爬虫等能力。
 

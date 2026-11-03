@@ -384,6 +384,78 @@ export const ASK_TOOL: OAuthTool = {
   },
 };
 
+// Maps tool definition
+export const MAPS_TOOL: OAuthTool = {
+  name: "maps",
+  title: "Find places on Google Maps",
+  description:
+    "Find local businesses and places on Google Maps when the user asks where something is, wants nearby options, or needs a list of businesses with contact details. Returns one page of up to 20 places, each with its name and Google Maps link plus address, phone, website, category, rating, review count, coordinates, and opening hours when available. Costs 3 credits per page, however many places it holds; use search for webpages and crawl to read a business website.",
+  ...AUTHENTICATED_READ_ONLY_WEB,
+  inputSchema: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        maxLength: 1000,
+        description: "What to look for on the map, such as \"coffee shops\" or \"dentists in Austin\"; a place name in the query sets the area when no location is given",
+      },
+      country: {
+        type: "string",
+        pattern: "^[a-zA-Z]{2}$",
+        description: "Two-letter country code for local results",
+        default: "us",
+      },
+      language: {
+        type: "string",
+        description: "Result language, such as en, de, or zh-CN",
+        default: "en",
+      },
+      location: {
+        type: "object",
+        description: "Search around this point instead of letting the query decide the area; required for page 2 and later",
+        properties: {
+          latitude: { type: "number", minimum: -90, maximum: 90 },
+          longitude: { type: "number", minimum: -180, maximum: 180 },
+          zoom: {
+            type: "number",
+            minimum: 3,
+            maximum: 30,
+            description: "Map zoom; higher is a smaller area",
+            default: 14,
+          },
+        },
+        required: ["latitude", "longitude"],
+      },
+      page: {
+        type: "integer",
+        minimum: 1,
+        maximum: 6,
+        description: "Google Maps page to fetch; each page is a separate 3-credit call and pages after the first need location",
+        default: 1,
+      },
+      max_results: {
+        type: "integer",
+        minimum: 1,
+        maximum: 20,
+        description: "How many places the answer needs from the page; fewer places do not lower the price",
+        default: 20,
+      },
+    },
+    required: ["query"],
+  },
+  outputSchema: {
+    type: "object",
+    properties: {
+      results: {
+        type: "array",
+        description: "Places in Google Maps order; url is the public Google Maps link and metadata holds the place details that were available",
+        items: CITABLE_RESULT_SCHEMA,
+      },
+    },
+    required: ["results"],
+  },
+};
+
 export const RENDER_RESULTS_TOOL: OAuthTool = {
   name: "render_results",
   title: "Render the results",
@@ -407,5 +479,6 @@ export const ALL_TOOLS = [
   SITEMAP_TOOL,
   TRENDING_TOOL,
   ASK_TOOL,
+  MAPS_TOOL,
   RENDER_RESULTS_TOOL,
 ];

@@ -217,6 +217,18 @@ npx skills add superagents-lab/search1api-cli
 |------|------|------|
 | `query` | 是 | 自然语言描述的需求，最多 500 字符 |
 
+### maps
+在 Google Maps 上查找本地商家和地点。每次返回一页最多 20 个地点，作为可引用结果：`title` 是地点名称，`url` 是 Google Maps 链接，`metadata` 中有数据时包含地址、电话、网站、类别、评分、评论数、坐标、营业时间、营业状态和价格区间。每页消耗 3 积分，不论包含多少地点。
+
+| 参数 | 必需 | 默认值 | 说明 |
+|------|------|--------|------|
+| `query` | 是 | - | 要找什么，例如 "coffee shops" 或 "dentists in Austin" |
+| `country` | 否 | us | 两位国家代码 |
+| `language` | 否 | en | 结果语言，例如 en、de、zh-CN |
+| `location` | 否 | - | `{ latitude, longitude, zoom? }`，围绕该点搜索；第 2 页起必填 |
+| `page` | 否 | 1 | Google Maps 页码 1-6，每页单独调用 |
+| `max_results` | 否 | 20 | 从该页返回的地点数（1-20）；返回更少不会降低价格 |
+
 ### send_feedback
 向 Search1API 团队反馈问题：结果错误、为空或不完整，无法解决的报错，文档与实际行为不符，或缺少的能力。免费，不消耗积分。服务端有 Search1API 凭证时，反馈会关联到对应账号，方便团队跟进。请勿包含凭证或隐私数据。
 
@@ -230,6 +242,7 @@ npx skills add superagents-lab/search1api-cli
 
 ## 版本历史
 
+- v0.10.0: 新增 `maps` 工具，搜索 Google Maps 地点（每页最多 20 个地点，3 积分）
 - v0.7.0: 新增智能搜索工具 `ask`。`search` 新增 `bingcn`、`yandex`、`grokipedia` 引擎和 `page` 参数；`search` 与 `news` 支持 `time_range: "week"`，并在结果 `metadata` 中透传 `published_date` 以及 GitHub、Hacker News 字段
 
 - v0.6.1: Bug fix — MCP 发现类方法（`initialize`、`tools/list`、`resources/*`、`prompts/list`、`server/discover`）重新要求凭证。匿名开放会让"能列出工具即视为已登录"的客户端显示已连接却无法触发 OAuth；现在所有未认证请求一律返回 401 挑战，恢复连接时的 OAuth 登录流程。目录侧可见性不受影响，仍由静态 server card 与 registry 元数据提供

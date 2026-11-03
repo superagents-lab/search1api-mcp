@@ -340,3 +340,81 @@ export function isValidAskArgs(args: unknown): args is AskArgs {
 
   return typeof query === 'string' && query.trim().length > 0 && query.length <= 500;
 }
+
+export interface MapsPlace {
+  position: number;
+  name: string;
+  place_id: string;
+  maps_url: string;
+  address?: string;
+  phone?: string;
+  website?: string;
+  thumbnail?: string;
+  category?: string;
+  categories?: string[];
+  rating?: number;
+  review_count?: number;
+  coordinates?: { latitude: number; longitude: number };
+  opening_hours?: Partial<Record<string, string>>;
+  open_state?: string;
+  price?: string;
+  description?: string;
+}
+
+export interface MapsResponse {
+  searchParameters: Record<string, unknown>;
+  results: MapsPlace[];
+}
+
+export interface MapsArgs {
+  query: string;
+  country?: string;
+  language?: string;
+  location?: { latitude: number; longitude: number; zoom?: number };
+  page?: number;
+  max_results?: number;
+}
+
+function isNumberInRange(value: unknown, min: number, max: number): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max;
+}
+
+export function isValidMapsArgs(args: unknown): args is MapsArgs {
+  if (typeof args !== 'object' || args === null) {
+    return false;
+  }
+
+  const { query, country, language, location, page, max_results } = args as MapsArgs;
+
+  if (typeof query !== 'string' || query.trim().length === 0 || query.length > 1000) {
+    return false;
+  }
+  if (country !== undefined && (typeof country !== 'string' || !/^[a-zA-Z]{2}$/.test(country))) {
+    return false;
+  }
+  if (language !== undefined && (typeof language !== 'string' || !/^[a-z]{2,3}(-[a-zA-Z]{2,4})?$/.test(language))) {
+    return false;
+  }
+  if (location !== undefined) {
+    if (typeof location !== 'object' || location === null) {
+      return false;
+    }
+    if (!isNumberInRange(location.latitude, -90, 90) || !isNumberInRange(location.longitude, -180, 180)) {
+      return false;
+    }
+    if (location.zoom !== undefined && !isNumberInRange(location.zoom, 3, 30)) {
+      return false;
+    }
+  }
+  if (page !== undefined && (!Number.isInteger(page) || page < 1 || page > 6)) {
+    return false;
+  }
+  if (page !== undefined && page > 1 && location === undefined) {
+    return false;
+  }
+  if (max_results !== undefined && (!Number.isInteger(max_results) || max_results < 1 || max_results > 20)) {
+    return false;
+  }
+
+  return true;
+}

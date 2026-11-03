@@ -221,6 +221,18 @@ Agentic search: describe the need in natural language and Search1API picks up to
 |-----------|----------|-------------|
 | `query` | Yes | The request in natural language, up to 500 characters |
 
+### maps
+Find local businesses and places on Google Maps. Returns one page of up to 20 places as citable results: `title` is the place name, `url` its Google Maps link, and `metadata` holds the address, phone, website, category, rating, review count, coordinates, opening hours, open state, and price range when available. Costs 3 credits per page, however many places it holds.
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `query` | Yes | - | What to look for, such as "coffee shops" or "dentists in Austin" |
+| `country` | No | us | Two-letter country code |
+| `language` | No | en | Result language, such as en, de, or zh-CN |
+| `location` | No | - | `{ latitude, longitude, zoom? }` to search around a point; required for page 2 and later |
+| `page` | No | 1 | Google Maps page, 1-6; each page is a separate call |
+| `max_results` | No | 20 | Places to return from the page (1-20); fewer places do not lower the price |
+
 ### send_feedback
 Report a wrong, empty or incomplete result, an error you could not resolve, documentation that did not match behavior, or a missing capability to the Search1API team. Free; it spends no credits. When the server has a Search1API credential, the report is linked to that account so the team can follow up. Do not include credentials or private data.
 
@@ -234,6 +246,7 @@ Report a wrong, empty or incomplete result, an error you could not resolve, docu
 
 ## Version History
 
+- v0.10.0: New `maps` tool for Google Maps place search (3 credits per page of up to 20 places)
 - v0.7.0: New `ask` tool for agentic search. `search` adds the `bingcn`, `yandex`, and `grokipedia` engines and a `page` parameter; `search` and `news` accept `time_range: "week"` and pass `published_date`, GitHub, and Hacker News fields through in result `metadata`
 
 - v0.6.1: Bug fix — MCP discovery (`initialize`, `tools/list`, `resources/*`, `prompts/list`, `server/discover`) requires a credential again. Serving it anonymously made clients that equate "tools listed" with "signed in" show a connected state with no way to trigger the OAuth flow; the 401 challenge now answers every unauthenticated request, restoring OAuth sign-in at connect time. Directory visibility is unchanged via the static server card and registry metadata

@@ -11,6 +11,7 @@ import { handleNews } from "./news.js";
 import { handleTrending } from "./trending.js";
 import { handleRenderResults } from "./render-results.js";
 import { handleAsk } from "./ask.js";
+import { handleMaps } from "./maps.js";
 import {
   SEARCH_TOOL,
   CRAWL_TOOL,
@@ -18,6 +19,7 @@ import {
   NEWS_TOOL,
   TRENDING_TOOL,
   ASK_TOOL,
+  MAPS_TOOL,
   RENDER_RESULTS_TOOL,
 } from "./index.js";
 
@@ -53,6 +55,9 @@ export async function handleToolCall(
 
     case ASK_TOOL.name:
       return await handleAsk(args, apiKey);
+
+    case MAPS_TOOL.name:
+      return await handleMaps(args, apiKey);
 
     case RENDER_RESULTS_TOOL.name:
       return await handleRenderResults(args);

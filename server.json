@@ -11,7 +11,7 @@
       ]
     }
   ],
-  "description": "Web search, agentic search, news, page retrieval, sitemaps, and trending topics through Search1API.",
+  "description": "Multi-engine web and platform search, news, Google Maps places, page reading, sitemaps, and trends.",
   "repository": {
     "url": "https://github.com/superagents-lab/search1api-mcp",
     "source": "github"

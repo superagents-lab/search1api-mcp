@@ -327,7 +327,7 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
         version: PACKAGE_VERSION,
         icons: SERVER_ICONS,
         description:
-          "Remote MCP server for Search1API. Exposes live web search, agentic search, news, page reading, sitemap discovery, and trending topics as tools for AI agents.",
+          "Remote MCP server for Search1API. Gives AI agents live search across Google, Bing, and platforms such as GitHub, Reddit, X, arXiv, WeChat, and Bilibili, plus news, Google Maps places, full-page reading, site link discovery, and GitHub and Hacker News trends.",
         serverUrl: MCP_RESOURCE,
         tools: ALL_TOOLS.map((tool) => ({
           name: tool.name,

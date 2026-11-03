@@ -49,6 +49,7 @@ const EXPECTED_TOOLS = [
   "sitemap",
   "trending",
   "ask",
+  "maps",
   "render_results",
 ];
 const EXPECTED_SERVED_TOOLS = [...EXPECTED_TOOLS, "send_feedback"];
@@ -1177,6 +1178,85 @@ test("ask sends only the query and returns citable results with intent", async (
     ],
     errors: [{ source: "reddit", message: "timeout" }],
   });
+});
+
+test("maps forwards location and paging and returns places as citable results", async (context) => {
+  const calls = stubFetch(context, {
+    searchParameters: {
+      query: "coffee shops",
+      country: "us",
+      language: "en",
+      location: { latitude: 40.7455, longitude: -74.0083, zoom: 15 },
+      page: 2,
+      max_results: 5,
+    },
+    results: [
+      {
+        position: 21,
+        name: "Example Coffee",
+        place_id: "ChIJ123",
+        maps_url: "https://www.google.com/maps/search/?api=1&query=Example+Coffee&query_place_id=ChIJ123",
+        address: "210 Spring St, New York, NY 10012",
+        category: "Coffee shop",
+        rating: 4.6,
+        review_count: 822,
+        coordinates: { latitude: 40.7253, longitude: -74.0037 },
+        open_state: "Open · Closes 12 AM",
+        thumbnail: "https://lh3.googleusercontent.com/example",
+      },
+    ],
+  });
+
+  const result = await handleToolCall("maps", {
+    query: "coffee shops",
+    location: { latitude: 40.7455, longitude: -74.0083, zoom: 15 },
+    page: 2,
+    max_results: 5,
+  });
+
+  assert.equal(calls[0].url, "https://api.search1api.com/maps");
+  assert.deepEqual(calls[0].body, {
+    query: "coffee shops",
+    location: { latitude: 40.7455, longitude: -74.0083, zoom: 15 },
+    page: 2,
+    max_results: 5,
+  });
+  assert.equal(result.isError, undefined);
+  assert.deepEqual(result.structuredContent, {
+    results: [
+      {
+        id: "ChIJ123",
+        title: "Example Coffee",
+        url: "https://www.google.com/maps/search/?api=1&query=Example+Coffee&query_place_id=ChIJ123",
+        text: "Coffee shop · 4.6★ (822 reviews) · 210 Spring St, New York, NY 10012 · Open · Closes 12 AM",
+        metadata: {
+          position: 21,
+          place_id: "ChIJ123",
+          address: "210 Spring St, New York, NY 10012",
+          category: "Coffee shop",
+          rating: 4.6,
+          review_count: 822,
+          coordinates: { latitude: 40.7253, longitude: -74.0037 },
+          open_state: "Open · Closes 12 AM",
+        },
+      },
+    ],
+  });
+});
+
+test("maps rejects invalid arguments before making an API request", async () => {
+  for (const args of [
+    { query: "  " },
+    { query: "pizza", page: 2 },
+    { query: "pizza", max_results: 21 },
+    { query: "pizza", location: { latitude: 91, longitude: 0 } },
+    { query: "pizza", country: "usa" },
+  ]) {
+    await assert.rejects(
+      handleToolCall("maps", args),
+      (error) => error instanceof ProtocolError && error.code === INVALID_PARAMS
+    );
+  }
 });
 
 test("ask rejects an empty query before making an API request", async () => {

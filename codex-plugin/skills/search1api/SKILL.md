@@ -20,6 +20,7 @@ an earlier server version. The host may prefix their names
 | Search the web | `search` |
 | Find the best sources when you don't know where to look | `ask` |
 | Find recent news or coverage | `news` |
+| Find businesses or places on a map, with addresses, ratings, and hours | `maps` |
 | Read a page the user shared, or the full page behind a result | `crawl` |
 | Explore the links on a site or page | `sitemap` |
 | See what is popular right now on GitHub or Hacker News | `trending` |
@@ -37,6 +38,8 @@ can register at https://s1.dev.
 - The user asks a question without a URL → `search` (or `news` for current
   events), then `crawl` the most relevant results when snippets aren't enough.
 - The user asks how a site is organized or what pages it has → `sitemap`.
+- The user asks where something is, wants nearby options, or needs a list of
+  local businesses → `maps`; `crawl` a place's website for more detail.
 
 ## Choose engines and compare sources
 
@@ -98,7 +101,7 @@ For `trending`: github, hackernews.
 
 Each `search` or `news` call costs 1 credit, plus 1 per page when
 `crawl_results` is above 0. Each `crawl` costs 1 credit. Each `ask` costs 5
-credits. Prefer a few targeted
+credits. Each `maps` call costs 3 credits per page of up to 20 places. Prefer a few targeted
 `crawl` calls on the best results over a large `crawl_results` value.
 
 ## Answer with sources

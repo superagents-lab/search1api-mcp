@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.10.0 - 2026-11-03
 
+- Add the `maps` tool to remote HTTP and local stdio: one Google Maps page of up to 20 places as citable results, with address, phone, website, category, rating, review count, coordinates, opening hours, open state and price range in `metadata` when available. Accepts `query`, `country`, `language`, `location` (`latitude`, `longitude`, `zoom`), `page` (1-6, later pages need `location`) and `max_results`. Costs 3 credits per page.
 - Declare all four annotation hints on `send_feedback` as explicit booleans (`readOnlyHint: false`, `destructiveHint: false`, `idempotentHint: false`, `openWorldHint: true`), as plugin directory reviews require.
 
 ## 0.9.0 - 2026-10-26

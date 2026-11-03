@@ -221,6 +221,18 @@ Agentische Suche: Beschreiben Sie Ihren Bedarf in natürlicher Sprache, und Sear
 |-----------|----------|-------------|
 | `query` | Ja | Die Anfrage in natürlicher Sprache, bis zu 500 Zeichen |
 
+### maps
+Findet lokale Unternehmen und Orte auf Google Maps. Liefert pro Aufruf eine Seite mit bis zu 20 Orten als zitierfähige Ergebnisse: `title` ist der Name, `url` der Google-Maps-Link, und `metadata` enthält, sofern verfügbar, Adresse, Telefon, Website, Kategorie, Bewertung, Anzahl der Rezensionen, Koordinaten, Öffnungszeiten, aktuellen Öffnungsstatus und Preisniveau. Kostet 3 Credits pro Seite, unabhängig von der Anzahl der Orte.
+
+| Parameter | Erforderlich | Standard | Beschreibung |
+|-----------|----------|---------|-------------|
+| `query` | Ja | - | Wonach gesucht wird, z. B. "coffee shops" oder "dentists in Austin" |
+| `country` | Nein | us | Zweistelliger Ländercode |
+| `language` | Nein | en | Ergebnissprache, z. B. en, de oder zh-CN |
+| `location` | Nein | - | `{ latitude, longitude, zoom? }` für die Suche um einen Punkt; ab Seite 2 erforderlich |
+| `page` | Nein | 1 | Google-Maps-Seite 1-6; jede Seite ist ein eigener Aufruf |
+| `max_results` | Nein | 20 | Anzahl der Orte aus der Seite (1-20); weniger Orte senken den Preis nicht |
+
 ### send_feedback
 Meldet dem Search1API-Team ein falsches, leeres oder unvollständiges Ergebnis, einen Fehler, den Sie nicht beheben konnten, eine Dokumentation, die nicht zum Verhalten passte, oder eine fehlende Funktion. Kostenlos; es werden keine Credits verbraucht. Verfügt der Server über Search1API-Zugangsdaten, wird die Meldung mit diesem Konto verknüpft, damit das Team nachfassen kann. Geben Sie keine Zugangsdaten oder privaten Daten an.
 
@@ -234,6 +246,7 @@ Meldet dem Search1API-Team ein falsches, leeres oder unvollständiges Ergebnis, 
 
 ## Versionsverlauf
 
+- v0.10.0: Neues Tool `maps` für die Ortssuche auf Google Maps (3 Credits pro Seite mit bis zu 20 Orten)
 - v0.7.0: Neues Tool `ask` für agentische Suche. `search` ergänzt die Suchmaschinen `bingcn`, `yandex` und `grokipedia` sowie einen Parameter `page`; `search` und `news` akzeptieren `time_range: "week"` und reichen `published_date` sowie GitHub- und Hacker-News-Felder in den Ergebnis-`metadata` durch
 
 - v0.6.1: Fehlerbehebung – Die MCP-Erkennung (`initialize`, `tools/list`, `resources/*`, `prompts/list`, `server/discover`) erfordert wieder Zugangsdaten. Wurde sie anonym ausgeliefert, zeigten Clients, die „Tools aufgelistet“ mit „angemeldet“ gleichsetzen, einen verbundenen Zustand an, ohne dass sich der OAuth-Ablauf auslösen ließ; die 401-Aufforderung beantwortet nun jede nicht authentifizierte Anfrage und stellt so die OAuth-Anmeldung beim Verbindungsaufbau wieder her. Die Sichtbarkeit in Verzeichnissen bleibt über die statische Server Card und die Registry-Metadaten unverändert

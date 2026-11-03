@@ -45,7 +45,8 @@ export const API_CONFIG = {
     SITEMAP: '/sitemap',
     NEWS: '/news',
     TRENDING: '/trending',
-    ASK: '/ask'
+    ASK: '/ask',
+    MAPS: '/maps'
   }
 } as const;
 

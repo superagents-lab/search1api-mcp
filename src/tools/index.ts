@@ -84,7 +84,7 @@ export const SEARCH_TOOL: OAuthTool = {
   name: "search",
   title: "Web search",
   description:
-    "Search the live public web when the user needs current information, sources, or research. Returns citable results with id, title, URL, and text. Each result includes a URL that can be read in full.",
+    "Search the live web through one chosen engine: Google, Bing, DuckDuckGo, or Yahoo for the open web, or a specialized source such as GitHub, Reddit, X, YouTube, arXiv, Wikipedia, WeChat, or Bilibili when the user wants results from that platform. Use when the user needs current information, sources, or research. Returns citable results with id, title, URL, and text; read any URL in full with crawl.",
   ...AUTHENTICATED_READ_ONLY_WEB,
   inputSchema: {
     type: "object",
@@ -156,7 +156,7 @@ export const NEWS_TOOL: OAuthTool = {
   name: "news",
   title: "News search",
   description:
-    "Search current news when the user asks about recent events, announcements, or coverage. Returns citable article results with title, URL, snippet, and optional extracted text.",
+    "Search current news from Google, Bing, DuckDuckGo, or Yahoo, or what developers are discussing on Hacker News, when the user asks about recent events, announcements, or coverage. Returns citable article results with title, URL, snippet, and optional extracted text.",
   ...AUTHENTICATED_READ_ONLY_WEB,
   inputSchema: {
     type: "object",

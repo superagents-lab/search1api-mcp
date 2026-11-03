@@ -16,4 +16,4 @@ export const SERVER_ICONS = [
 
 // Same wording as server.json, advertised in the MCP handshake serverInfo.
 export const SERVER_DESCRIPTION =
-  "Web search, agentic search, news, page retrieval, sitemaps, and trending topics through Search1API.";
+  "Multi-engine web and platform search, news, Google Maps places, page reading, sitemaps, and trends.";

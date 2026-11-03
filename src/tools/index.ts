@@ -156,7 +156,7 @@ export const NEWS_TOOL: OAuthTool = {
   name: "news",
   title: "News search",
   description:
-    "Search current news from Google, Bing, DuckDuckGo, or Yahoo, or what developers are discussing on Hacker News, when the user asks about recent events, announcements, or coverage. Returns citable article results with title, URL, snippet, and optional extracted text.",
+    "Search current news when the user asks about recent events, announcements, or coverage. Returns citable article results with title, URL, snippet, and optional extracted text.",
   ...AUTHENTICATED_READ_ONLY_WEB,
   inputSchema: {
     type: "object",

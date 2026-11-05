@@ -64,7 +64,7 @@ export function createMcpServer(
       websiteUrl: "https://s1.dev",
       description: SERVER_DESCRIPTION,
     },
-    { instructions: "Use search, news, ask, maps, crawl, sitemap and trending to retrieve data. Call render_results with selected existing results only when the user wants to browse sources or a visual list helps. Rendering never repeats a search or consumes search credits; unsupported UI clients receive a readable text list." }
+    { instructions: "Use search, news, ask, maps, crawl, deepcrawl, sitemap and trending to retrieve data. Call render_results with selected existing results only when the user wants to browse sources or a visual list helps. Rendering never repeats a search or consumes search credits; unsupported UI clients receive a readable text list." }
   );
 
   for (const tool of ALL_TOOLS) {

@@ -22,6 +22,7 @@ an earlier server version. The host may prefix their names
 | Find recent news or coverage | `news` |
 | Find businesses or places on a map, with addresses, ratings, and hours | `maps` |
 | Read a page the user shared, or the full page behind a result | `crawl` |
+| Read many pages of one site, such as a documentation section | `deepcrawl` |
 | Explore the links on a site or page | `sitemap` |
 | See what is popular right now on GitHub or Hacker News | `trending` |
 | Display selected existing sources | `render_results` |
@@ -39,6 +40,11 @@ can register at https://s1.dev.
 - The user asks a question without a URL → `search` (or `news` for current
   events), then `crawl` the most relevant results when snippets aren't enough.
 - The user asks how a site is organized or what pages it has → `sitemap`.
+- The user needs the content of many pages on one site ("read the Hono
+  docs", "summarize this blog's posts") → `deepcrawl`, narrowed with
+  `include_paths` and `max_pages`. If it returns `status: "running"`, call
+  `deepcrawl` again with only its `task_id`; that check is free. For one or
+  two pages, `crawl` them instead.
 - The user asks where something is, wants nearby options, or needs a list of
   local businesses → `maps`; `crawl` a place's website for more detail.
 
@@ -102,7 +108,9 @@ For `trending`: github, hackernews.
 
 Each `search` or `news` call costs 1 credit, plus 1 per page when
 `crawl_results` is above 0. Each `crawl` costs 1 credit. Each `ask` costs 5
-credits. Each `maps` call costs 3 credits per page of up to 20 places. Prefer a few targeted
+credits. Each `maps` call costs 3 credits per page of up to 20 places. Each
+`deepcrawl` task costs 20 credits however many pages it reads; checking a
+running task with `task_id` is free. Prefer a few targeted
 `crawl` calls on the best results over a large `crawl_results` value.
 
 ## Answer with sources

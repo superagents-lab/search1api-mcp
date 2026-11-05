@@ -418,3 +418,87 @@ export function isValidMapsArgs(args: unknown): args is MapsArgs {
 
   return true;
 }
+
+export interface DeepcrawlStats {
+  discovered: number;
+  matched: number;
+  skipped: number;
+  crawled: number;
+  failed: number;
+}
+
+export interface DeepcrawlPage {
+  url: string;
+  title: string | null;
+  content: string;
+}
+
+export interface DeepcrawlStartResponse {
+  taskId: string;
+  status: string;
+}
+
+export interface DeepcrawlStatusResponse {
+  taskId: string;
+  status?: string;
+  message?: string;
+  error?: string | null;
+  format?: string;
+  stats?: DeepcrawlStats;
+  failed?: Array<{ url: string; error: string }>;
+  resultUrl?: string | null;
+  pages?: DeepcrawlPage[];
+}
+
+export interface DeepcrawlArgs {
+  url?: string;
+  task_id?: string;
+  type?: 'sitemap' | 'all';
+  max_pages?: number;
+  include_paths?: string[];
+  exclude_paths?: string[];
+}
+
+export const DEEPCRAWL_MAX_PAGES = 50;
+
+function isValidPathRules(rules: unknown): boolean {
+  return (
+    Array.isArray(rules) &&
+    rules.length <= 20 &&
+    rules.every((rule) => typeof rule === 'string' && rule.length >= 1 && rule.length <= 200)
+  );
+}
+
+/**
+ * Either `task_id` (check an earlier crawl) or `url` (start a new one) is
+ * required. With `task_id`, the crawl options are ignored.
+ */
+export function isValidDeepcrawlArgs(args: unknown): args is DeepcrawlArgs {
+  if (typeof args !== 'object' || args === null) {
+    return false;
+  }
+
+  const { url, task_id, type, max_pages, include_paths, exclude_paths } = args as DeepcrawlArgs;
+
+  if (task_id !== undefined) {
+    return typeof task_id === 'string' && task_id.trim().length > 0 && task_id.length <= 200;
+  }
+
+  if (typeof url !== 'string' || url.trim().length === 0) {
+    return false;
+  }
+  if (type !== undefined && type !== 'sitemap' && type !== 'all') {
+    return false;
+  }
+  if (max_pages !== undefined && (!Number.isInteger(max_pages) || max_pages < 1 || max_pages > DEEPCRAWL_MAX_PAGES)) {
+    return false;
+  }
+  if (include_paths !== undefined && !isValidPathRules(include_paths)) {
+    return false;
+  }
+  if (exclude_paths !== undefined && !isValidPathRules(exclude_paths)) {
+    return false;
+  }
+
+  return true;
+}

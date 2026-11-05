@@ -31,6 +31,7 @@ const { createMcpServer, unauthenticatedCredential } = await import(
   "../build/server.js"
 );
 const { handleToolCall } = await import("../build/tools/handlers.js");
+const { DEEPCRAWL_POLLING } = await import("../build/tools/deepcrawl.js");
 const { ALL_TOOLS } = await import("../build/tools/index.js");
 const { RESOURCES } = await import("../build/resources.js");
 const { withoutUiMeta } = await import("../build/ui.js");
@@ -50,6 +51,7 @@ const EXPECTED_TOOLS = [
   "trending",
   "ask",
   "maps",
+  "deepcrawl",
   "render_results",
 ];
 const EXPECTED_SERVED_TOOLS = [...EXPECTED_TOOLS, "send_feedback"];
@@ -1254,6 +1256,329 @@ test("maps rejects invalid arguments before making an API request", async () => 
   ]) {
     await assert.rejects(
       handleToolCall("maps", args),
+      (error) => error instanceof ProtocolError && error.code === INVALID_PARAMS
+    );
+  }
+});
+
+const DEEPCRAWL_TASK = "task_123";
+const DEEPCRAWL_STATUS_URL = `https://api.search1api.com/deepcrawl/status/${DEEPCRAWL_TASK}`;
+
+/**
+ * Answer POST /deepcrawl with `start` and each status check with the next
+ * entry of `statuses` (the last one repeats). Polling runs on a millisecond
+ * clock so a "still running" answer arrives quickly.
+ */
+function stubDeepcrawl(context, { start = { status: 202, body: { taskId: DEEPCRAWL_TASK, status: "queued" } }, statuses = [] } = {}) {
+  const calls = [];
+  // A test may stub several times; always restore what was there before the first.
+  const original = globalThis.fetch.deepcrawlOriginal ?? {
+    fetch: globalThis.fetch,
+    polling: { ...DEEPCRAWL_POLLING },
+  };
+  DEEPCRAWL_POLLING.intervalMs = 1;
+  DEEPCRAWL_POLLING.timeoutMs = 50;
+  let next = 0;
+  const stub = async (url, init) => {
+    calls.push({
+      url: String(url),
+      method: init.method,
+      ...(init.body !== undefined && { body: JSON.parse(init.body) }),
+    });
+    const answer = init.method === "POST"
+      ? start
+      : statuses[Math.min(next++, statuses.length - 1)];
+    if (answer instanceof Error) {
+      throw answer;
+    }
+    return Response.json(answer.body, { status: answer.status ?? 200 });
+  };
+  stub.deepcrawlOriginal = original;
+  globalThis.fetch = stub;
+  context.after(() => {
+    globalThis.fetch = original.fetch;
+    Object.assign(DEEPCRAWL_POLLING, original.polling);
+  });
+  return calls;
+}
+
+const processing = { body: { taskId: DEEPCRAWL_TASK, status: "processing", message: "Workflow is currently running." } };
+
+test("deepcrawl starts a JSON task, polls it and returns the pages as citable results", async (context) => {
+  const calls = stubDeepcrawl(context, {
+    statuses: [
+      processing,
+      {
+        body: {
+          taskId: DEEPCRAWL_TASK,
+          status: "completed",
+          success: true,
+          message: "Crawled 2 of 2 pages.",
+          format: "json",
+          stats: { discovered: 40, matched: 3, skipped: 0, crawled: 2, failed: 1 },
+          failed: [{ url: "https://hono.dev/docs/broken", error: "HTTP 500" }],
+          resultUrl: "https://files.example.com/deepcrawl/task_123.json",
+          pages: [
+            { url: "https://hono.dev/docs/", title: "Hono docs", content: "# Hono\n\nUltrafast." },
+            { url: "https://hono.dev/docs/api", title: null, content: "# API" },
+          ],
+        },
+      },
+    ],
+  });
+
+  const result = await handleToolCall("deepcrawl", {
+    url: "https://hono.dev/docs/",
+    include_paths: ["/docs/"],
+    exclude_paths: ["/docs/changelog"],
+  });
+
+  assert.deepEqual(calls[0], {
+    url: "https://api.search1api.com/deepcrawl",
+    method: "POST",
+    body: {
+      url: "https://hono.dev/docs/",
+      max_pages: 10,
+      include_paths: ["/docs/"],
+      exclude_paths: ["/docs/changelog"],
+      format: "json",
+    },
+  });
+  assert.deepEqual(calls.slice(1), [
+    { url: DEEPCRAWL_STATUS_URL, method: "GET" },
+    { url: DEEPCRAWL_STATUS_URL, method: "GET" },
+  ]);
+  assert.equal(result.isError, undefined);
+  assert.deepEqual(result.structuredContent, {
+    task_id: DEEPCRAWL_TASK,
+    status: "completed",
+    message: "Crawled 2 of 2 pages.",
+    results: [
+      {
+        id: "https://hono.dev/docs/",
+        title: "Hono docs",
+        url: "https://hono.dev/docs/",
+        text: "# Hono\n\nUltrafast.",
+        metadata: { source: "search1api", position: 1 },
+      },
+      {
+        id: "https://hono.dev/docs/api",
+        title: "https://hono.dev/docs/api",
+        url: "https://hono.dev/docs/api",
+        text: "# API",
+        metadata: { source: "search1api", position: 2 },
+      },
+    ],
+    stats: { discovered: 40, matched: 3, skipped: 0, crawled: 2, failed: 1 },
+    failed: [{ url: "https://hono.dev/docs/broken", error: "HTTP 500" }],
+    result_url: "https://files.example.com/deepcrawl/task_123.json",
+    truncated: false,
+  });
+  assert.deepEqual(JSON.parse(result.content[0].text), result.structuredContent);
+});
+
+test("deepcrawl bounds page text and points to result_url for the rest", async (context) => {
+  const pages = Array.from({ length: 12 }, (_, index) => ({
+    url: `https://example.com/docs/${index + 1}`,
+    title: `Page ${index + 1}`,
+    content: "x".repeat(9_000),
+  }));
+  stubDeepcrawl(context, {
+    statuses: [{
+      body: {
+        taskId: DEEPCRAWL_TASK,
+        status: "completed",
+        message: "Crawled 12 pages.",
+        resultUrl: "https://files.example.com/deepcrawl/task_123.json",
+        pages,
+      },
+    }],
+  });
+
+  const result = await handleToolCall("deepcrawl", { url: "https://example.com/docs/", max_pages: 12, type: "all" });
+  const { results, truncated, note, result_url } = result.structuredContent;
+
+  assert.equal(results.length, 12);
+  assert.equal(truncated, true);
+  assert.equal(result_url, "https://files.example.com/deepcrawl/task_123.json");
+  assert.match(note, /result_url/);
+  for (const page of results.slice(0, 10)) {
+    assert.equal(page.text.length, 8_000);
+    assert.deepEqual(page.metadata, {
+      source: "search1api",
+      position: page.metadata.position,
+      truncated: true,
+      content_length: 9_000,
+    });
+  }
+  // The 80,000-character budget is spent; later pages keep their title and URL.
+  assert.equal(results[10].text, undefined);
+  assert.equal(results[11].metadata.truncated, true);
+  assert.equal(results.reduce((sum, page) => sum + (page.text?.length ?? 0), 0), 80_000);
+});
+
+test("deepcrawl sends type and max_pages and explains a crawl that found nothing", async (context) => {
+  const calls = stubDeepcrawl(context, {
+    statuses: [{
+      body: {
+        taskId: DEEPCRAWL_TASK,
+        status: "completed",
+        message: "No URLs matched include_paths.",
+        stats: { discovered: 12, matched: 0, skipped: 0, crawled: 0, failed: 0 },
+      },
+    }],
+  });
+
+  const result = await handleToolCall("deepcrawl", {
+    url: "https://example.com",
+    type: "all",
+    max_pages: 50,
+    include_paths: ["/nothing/*"],
+  });
+
+  assert.deepEqual(calls[0].body, {
+    url: "https://example.com",
+    type: "all",
+    max_pages: 50,
+    include_paths: ["/nothing/*"],
+    format: "json",
+  });
+  assert.deepEqual(result.structuredContent, {
+    task_id: DEEPCRAWL_TASK,
+    status: "completed",
+    message: "No URLs matched include_paths.",
+    results: [],
+    stats: { discovered: 12, matched: 0, skipped: 0, crawled: 0, failed: 0 },
+    failed: [],
+    truncated: false,
+    note: "The crawl finished without pages; message says why.",
+  });
+});
+
+test("deepcrawl hands back a task_id when the crawl outlasts the wait, and the follow-up only checks status", async (context) => {
+  const calls = stubDeepcrawl(context, { statuses: [processing] });
+
+  const running = await handleToolCall("deepcrawl", { url: "https://example.com" });
+
+  assert.equal(running.isError, undefined);
+  assert.equal(running.structuredContent.task_id, DEEPCRAWL_TASK);
+  assert.equal(running.structuredContent.status, "running");
+  assert.deepEqual(running.structuredContent.results, []);
+  assert.match(running.structuredContent.note, /deepcrawl again with \{"task_id": "task_123"\}/);
+  assert.match(running.structuredContent.note, /costs no credits/);
+  assert.equal(calls.filter((call) => call.method === "POST").length, 1);
+  assert.ok(calls.filter((call) => call.method === "GET").length >= 2);
+
+  const followUp = stubDeepcrawl(context, {
+    statuses: [{ body: { taskId: DEEPCRAWL_TASK, status: "completed", pages: [{ url: "https://example.com/", title: "Example", content: "Hello" }] } }],
+  });
+  // url and crawl options are ignored when task_id is given.
+  const done = await handleToolCall("deepcrawl", { task_id: DEEPCRAWL_TASK, url: "https://example.com", max_pages: 5 });
+
+  assert.deepEqual(followUp, [{ url: DEEPCRAWL_STATUS_URL, method: "GET" }]);
+  assert.equal(done.structuredContent.status, "completed");
+  assert.equal(done.structuredContent.results[0].text, "Hello");
+});
+
+test("deepcrawl keeps polling through transient status errors", async (context) => {
+  stubDeepcrawl(context, {
+    statuses: [
+      new TypeError("fetch failed"),
+      { status: 502, body: { error: "Bad Gateway", message: "Upstream deepcrawl service failed to report task status" } },
+      { body: { taskId: DEEPCRAWL_TASK, status: "completed", pages: [] } },
+    ],
+  });
+
+  const result = await handleToolCall("deepcrawl", { url: "https://example.com" });
+
+  assert.equal(result.isError, undefined);
+  assert.equal(result.structuredContent.status, "completed");
+});
+
+test("deepcrawl reports start errors, failed tasks and unknown task ids as tool errors", async (context) => {
+  stubDeepcrawl(context, {
+    start: { status: 402, body: { error: "Payment Required", message: "Insufficient credits" } },
+  });
+  const unpaid = await handleToolCall("deepcrawl", { url: "https://example.com" });
+  assert.equal(unpaid.isError, true);
+  assert.equal(unpaid.content[0].text, "Deepcrawl API error: API error: 402 Insufficient credits");
+
+  // A failed task arrives as HTTP 500 with the task payload.
+  stubDeepcrawl(context, {
+    statuses: [{ status: 500, body: { taskId: DEEPCRAWL_TASK, status: "failed", message: "Workflow errored.", error: "No links found for https://example.com" } }],
+  });
+  const failed = await handleToolCall("deepcrawl", { url: "https://example.com" });
+  assert.equal(failed.isError, true);
+  assert.equal(failed.content[0].text, "Deepcrawl task task_123 failed: No links found for https://example.com");
+
+  stubDeepcrawl(context, {
+    statuses: [{ status: 404, body: { taskId: "gone", status: "not_found", error: "Not Found", message: "Task not found: gone" } }],
+  });
+  const missing = await handleToolCall("deepcrawl", { task_id: "gone" });
+  assert.equal(missing.isError, true);
+  assert.match(missing.content[0].text, /^Deepcrawl task gone was not found/);
+
+  const unauthorized = stubDeepcrawl(context, {
+    statuses: [{ status: 401, body: { error: "Unauthorized", message: "Invalid API key" } }],
+  });
+  const rejected = await handleToolCall("deepcrawl", { task_id: DEEPCRAWL_TASK });
+  assert.equal(rejected.isError, true);
+  assert.equal(rejected.content[0].text, "Deepcrawl API error: API error: 401 Invalid API key (task_id task_123)");
+  assert.equal(unauthorized.length, 1);
+});
+
+test("deepcrawl results satisfy the advertised output schema over MCP", async (context) => {
+  stubDeepcrawl(context, {
+    statuses: [{
+      body: {
+        taskId: DEEPCRAWL_TASK,
+        status: "completed",
+        message: "Crawled 1 page.",
+        stats: { discovered: 1, matched: 1, skipped: 0, crawled: 1, failed: 0 },
+        failed: [],
+        resultUrl: "https://files.example.com/deepcrawl/task_123.json",
+        pages: [{ url: "https://example.com/", title: "Example", content: "Hello" }],
+      },
+    }],
+  });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const serverHandle = serveStdio(() => createMcpServer("test-key"), { transport: serverTransport });
+  const client = new Client(
+    { name: "search1api-deepcrawl-test", version: "1.0.0" },
+    { versionNegotiation: { mode: { pin: "2026-07-28" } } }
+  );
+  context.after(async () => {
+    await client.close();
+    await serverHandle.close();
+  });
+  await client.connect(clientTransport);
+
+  const tool = (await client.listTools()).tools.find((candidate) => candidate.name === "deepcrawl");
+  assert.equal(tool.inputSchema.properties.max_pages.maximum, 50);
+  assert.equal(tool.inputSchema.properties.max_pages.default, 10);
+  assert.match(tool.description, /20 credits per started task/);
+  assert.match(tool.description, /at no cost/);
+
+  const result = await client.callTool({ name: "deepcrawl", arguments: { url: "https://example.com" } });
+  assert.equal(result.isError, undefined);
+  assert.equal(result.structuredContent.results[0].url, "https://example.com/");
+});
+
+test("deepcrawl rejects invalid arguments before making an API request", async () => {
+  for (const args of [
+    {},
+    { url: "  " },
+    { task_id: "  " },
+    { url: "https://example.com", max_pages: 51 },
+    { url: "https://example.com", max_pages: 0 },
+    { url: "https://example.com", max_pages: 2.5 },
+    { url: "https://example.com", type: "full" },
+    { url: "https://example.com", include_paths: "/docs" },
+    { url: "https://example.com", include_paths: [""] },
+    { url: "https://example.com", exclude_paths: Array.from({ length: 21 }, (_, index) => `/p${index}`) },
+  ]) {
+    await assert.rejects(
+      handleToolCall("deepcrawl", args),
       (error) => error instanceof ProtocolError && error.code === INVALID_PARAMS
     );
   }

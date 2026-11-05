@@ -456,6 +456,122 @@ export const MAPS_TOOL: OAuthTool = {
   },
 };
 
+const DEEPCRAWL_PATH_RULES = {
+  type: "array",
+  maxItems: 20,
+  items: {
+    type: "string",
+    minLength: 1,
+    maxLength: 200,
+  },
+};
+
+// Deepcrawl tool definition
+export const DEEPCRAWL_TOOL: OAuthTool = {
+  name: "deepcrawl",
+  title: "Crawl a website",
+  description:
+    "Read many pages of one website in a single task, such as a documentation section, when the user needs content from across a site rather than one page. Finds the site's URLs through its sitemap, keeps those whose path matches the path rules, and returns up to max_pages pages as citable results with title, URL, and Markdown text, plus page counts and the URLs that failed. Costs 20 credits per started task, however many pages it reads. Waits about 45 seconds; if the crawl is still running, the result holds a task_id, and calling deepcrawl again with that task_id collects the pages at no cost. Use crawl for a single page and sitemap for a list of URLs without their content.",
+  ...AUTHENTICATED_READ_ONLY_WEB,
+  inputSchema: {
+    type: "object",
+    properties: {
+      url: {
+        type: "string",
+        format: "uri",
+        description: "Site or section to crawl, such as https://example.com or https://example.com/docs/; required unless task_id is given",
+      },
+      max_pages: {
+        type: "integer",
+        minimum: 1,
+        maximum: 50,
+        description: "Most pages to read, taken in discovery order after the path rules; the price is the same for any number",
+        default: 10,
+      },
+      include_paths: {
+        ...DEEPCRAWL_PATH_RULES,
+        description: "Only read URLs whose path matches one of these rules. A rule without * is a path prefix on segment boundaries (\"/docs\" matches /docs/api but not /docsearch); a rule with * must match the whole path, and * also matches / (\"/blog/*\")",
+      },
+      exclude_paths: {
+        ...DEEPCRAWL_PATH_RULES,
+        description: "Skip URLs whose path matches one of these rules, with the same syntax as include_paths; exclusion wins over inclusion",
+      },
+      type: {
+        type: "string",
+        enum: ["sitemap", "all"],
+        description: "Where URLs come from: sitemap uses the site's sitemap, or the links on the start page when it has none; all uses every link discovered from the start URL, which can include other sites",
+        default: "sitemap",
+      },
+      task_id: {
+        type: "string",
+        minLength: 1,
+        maxLength: 200,
+        description: "task_id from an earlier deepcrawl result that was still running; collects that crawl for free instead of starting a new one, and the other arguments are ignored",
+      },
+    },
+  },
+  outputSchema: {
+    type: "object",
+    properties: {
+      task_id: {
+        type: "string",
+        description: "Crawl task id; pass it back as task_id while status is running",
+      },
+      status: {
+        type: "string",
+        enum: ["completed", "running"],
+        description: "completed when the crawl has finished; running when it needs more time and results is empty",
+      },
+      message: {
+        type: "string",
+        description: "Summary of the finished crawl, including why nothing was crawled",
+      },
+      results: {
+        type: "array",
+        description: "Crawled pages in discovery order; text holds each page's Markdown, shortened when metadata.truncated is true",
+        items: CITABLE_RESULT_SCHEMA,
+      },
+      stats: {
+        type: "object",
+        description: "Page counts: links discovered, links matching the path rules, matches left out by max_pages, and pages crawled or failed",
+        properties: {
+          discovered: { type: "integer" },
+          matched: { type: "integer" },
+          skipped: { type: "integer" },
+          crawled: { type: "integer" },
+          failed: { type: "integer" },
+        },
+      },
+      failed: {
+        type: "array",
+        description: "Pages that could not be crawled, with the reason",
+        items: {
+          type: "object",
+          properties: {
+            url: { type: "string" },
+            error: { type: "string" },
+          },
+          required: ["url", "error"],
+        },
+      },
+      result_url: {
+        type: "string",
+        format: "uri",
+        description: "JSON file with every crawled page in full",
+      },
+      truncated: {
+        type: "boolean",
+        description: "Whether page text was shortened or left out to bound the response",
+      },
+      note: {
+        type: "string",
+        description: "What to do next: call again with task_id, or where to find text that was cut",
+      },
+    },
+    required: ["task_id", "status", "results"],
+  },
+};
+
 export const RENDER_RESULTS_TOOL: OAuthTool = {
   name: "render_results",
   title: "Render the results",
@@ -480,5 +596,6 @@ export const ALL_TOOLS = [
   TRENDING_TOOL,
   ASK_TOOL,
   MAPS_TOOL,
+  DEEPCRAWL_TOOL,
   RENDER_RESULTS_TOOL,
 ];

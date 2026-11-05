@@ -46,7 +46,9 @@ export const API_CONFIG = {
     NEWS: '/news',
     TRENDING: '/trending',
     ASK: '/ask',
-    MAPS: '/maps'
+    MAPS: '/maps',
+    DEEPCRAWL: '/deepcrawl',
+    DEEPCRAWL_STATUS: '/deepcrawl/status'
   }
 } as const;
 

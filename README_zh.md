@@ -229,6 +229,20 @@ npx skills add superagents-lab/search1api-cli
 | `page` | 否 | 1 | Google Maps 页码 1-6，每页单独调用 |
 | `max_results` | 否 | 20 | 从该页返回的地点数（1-20）；返回更少不会降低价格 |
 
+### deepcrawl
+一次任务读取同一网站的多个页面，例如整个文档栏目。通过站点地图找到网站的 URL，保留符合路径规则的部分，最多返回 `max_pages` 个页面，作为可引用结果：`title`、`url`，`text` 为页面的 Markdown 内容。结果还包含 `stats`（发现、匹配、因上限略过、成功抓取、失败的数量）、`failed`（无法读取的 URL 及原因）、API 返回的 `message`，以及 `result_url`（包含全部页面完整内容的 JSON 文件）。每个启动的任务消耗 20 积分，不论读取多少页面。
+
+工具最多等待约 45 秒。如果抓取仍在进行，会返回 `status: "running"` 和 `task_id`；用该 `task_id` 再次调用 `deepcrawl` 即可取回页面，这次调用免费，也不会启动新的抓取。每页文本最多返回 8,000 字符、总计最多 80,000 字符；被截断的页面带有 `metadata.truncated: true`，完整文本见 `result_url`。
+
+| 参数 | 必需 | 默认值 | 说明 |
+|------|------|--------|------|
+| `url` | 是（提供 `task_id` 时不需要） | - | 要抓取的网站或栏目，例如 `https://example.com/docs/` |
+| `max_pages` | 否 | 10 | 最多读取的页面数（1-50），按发现顺序在路径规则之后计算；页数多少不影响价格 |
+| `include_paths` | 否 | - | 最多 20 条 URL 路径规则，只读取匹配的页面。不含 `*` 时按路径段前缀匹配（`/docs` 匹配 `/docs/api`，不匹配 `/docsearch`）；含 `*` 时须匹配整个路径，`*` 也匹配 `/` |
+| `exclude_paths` | 否 | - | 最多 20 条要跳过的路径规则，语法相同；排除优先 |
+| `type` | 否 | sitemap | `sitemap` 使用网站的站点地图，没有站点地图时使用起始页上的链接；`all` 使用从起始 URL 发现的所有链接 |
+| `task_id` | 否 | - | 仍在运行的抓取任务的 `task_id`；只查询状态，其他参数会被忽略 |
+
 ### send_feedback
 向 Search1API 团队反馈问题：结果错误、为空或不完整，无法解决的报错，文档与实际行为不符，或缺少的能力。免费，不消耗积分。服务端有 Search1API 凭证时，反馈会关联到对应账号，方便团队跟进。请勿包含凭证或隐私数据。
 
@@ -242,6 +256,7 @@ npx skills add superagents-lab/search1api-cli
 
 ## 版本历史
 
+- v0.11.0: 新增 `deepcrawl` 工具，一次任务读取同一网站最多 50 个页面（每个任务 20 积分，查询运行中的任务免费）
 - v0.10.0: 新增 `maps` 工具，搜索 Google Maps 地点（每页最多 20 个地点，3 积分）
 - v0.7.0: 新增智能搜索工具 `ask`。`search` 新增 `bingcn`、`yandex`、`grokipedia` 引擎和 `page` 参数；`search` 与 `news` 支持 `time_range: "week"`，并在结果 `metadata` 中透传 `published_date` 以及 GitHub、Hacker News 字段
 

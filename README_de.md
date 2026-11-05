@@ -233,6 +233,20 @@ Findet lokale Unternehmen und Orte auf Google Maps. Liefert pro Aufruf eine Seit
 | `page` | Nein | 1 | Google-Maps-Seite 1-6; jede Seite ist ein eigener Aufruf |
 | `max_results` | Nein | 20 | Anzahl der Orte aus der Seite (1-20); weniger Orte senken den Preis nicht |
 
+### deepcrawl
+Liest viele Seiten einer Website in einem einzigen Task, etwa einen Dokumentationsbereich. Findet die URLs der Website über ihre Sitemap, behält die, die zu den Pfadregeln passen, und liefert bis zu `max_pages` Seiten als zitierfähige Ergebnisse: `title`, `url` und den Markdown-Inhalt der Seite in `text`. Das Ergebnis enthält außerdem `stats` (gefunden, passend, durch das Limit ausgelassen, gecrawlt, fehlgeschlagen), `failed` (URLs, die nicht gelesen werden konnten, mit Grund), die `message` der API und `result_url`, eine JSON-Datei mit allen Seiten in voller Länge. Kostet 20 Credits pro gestartetem Task, unabhängig von der Anzahl der Seiten.
+
+Das Tool wartet bis zu etwa 45 Sekunden. Läuft der Crawl dann noch, liefert es `status: "running"` mit einer `task_id`; ein erneuter Aufruf von `deepcrawl` mit dieser `task_id` holt die Seiten ab, kostet nichts und startet keinen neuen Crawl. Der Seitentext ist auf 8.000 Zeichen pro Seite und 80.000 insgesamt begrenzt; gekürzte Seiten tragen `metadata.truncated: true`, den vollständigen Text enthält `result_url`.
+
+| Parameter | Erforderlich | Standard | Beschreibung |
+|-----------|----------|---------|-------------|
+| `url` | Ja, außer mit `task_id` | - | Zu crawlende Website oder Bereich, z. B. `https://example.com/docs/` |
+| `max_pages` | Nein | 10 | Höchstzahl zu lesender Seiten (1-50), in Fundreihenfolge nach den Pfadregeln; der Preis ist unabhängig von der Anzahl |
+| `include_paths` | Nein | - | Bis zu 20 URL-Pfadregeln für die zu lesenden Seiten. Ohne `*` ist eine Regel ein Pfadpräfix an Segmentgrenzen (`/docs` passt auf `/docs/api`, nicht auf `/docsearch`); mit `*` muss sie den ganzen Pfad treffen, und `*` passt auch auf `/` |
+| `exclude_paths` | Nein | - | Bis zu 20 Pfadregeln für auszulassende Seiten, gleiche Syntax; Ausschluss hat Vorrang |
+| `type` | Nein | sitemap | `sitemap` nutzt die Sitemap der Website oder, wenn keine existiert, die Links der Startseite; `all` nutzt alle von der Start-URL aus gefundenen Links |
+| `task_id` | Nein | - | `task_id` eines noch laufenden Crawls; fragt nur dessen Status ab, die übrigen Parameter werden ignoriert |
+
 ### send_feedback
 Meldet dem Search1API-Team ein falsches, leeres oder unvollständiges Ergebnis, einen Fehler, den Sie nicht beheben konnten, eine Dokumentation, die nicht zum Verhalten passte, oder eine fehlende Funktion. Kostenlos; es werden keine Credits verbraucht. Verfügt der Server über Search1API-Zugangsdaten, wird die Meldung mit diesem Konto verknüpft, damit das Team nachfassen kann. Geben Sie keine Zugangsdaten oder privaten Daten an.
 
@@ -246,6 +260,7 @@ Meldet dem Search1API-Team ein falsches, leeres oder unvollständiges Ergebnis, 
 
 ## Versionsverlauf
 
+- v0.11.0: Neues Tool `deepcrawl`, das bis zu 50 Seiten einer Website in einem Task liest (20 Credits pro Task; die Abfrage eines laufenden Tasks ist kostenlos)
 - v0.10.0: Neues Tool `maps` für die Ortssuche auf Google Maps (3 Credits pro Seite mit bis zu 20 Orten)
 - v0.7.0: Neues Tool `ask` für agentische Suche. `search` ergänzt die Suchmaschinen `bingcn`, `yandex` und `grokipedia` sowie einen Parameter `page`; `search` und `news` akzeptieren `time_range: "week"` und reichen `published_date` sowie GitHub- und Hacker-News-Felder in den Ergebnis-`metadata` durch
 

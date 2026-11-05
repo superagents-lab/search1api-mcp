@@ -233,6 +233,20 @@ Find local businesses and places on Google Maps. Returns one page of up to 20 pl
 | `page` | No | 1 | Google Maps page, 1-6; each page is a separate call |
 | `max_results` | No | 20 | Places to return from the page (1-20); fewer places do not lower the price |
 
+### deepcrawl
+Read many pages of one site in a single task, such as a documentation section. Finds the site's URLs through its sitemap, keeps those that match the path rules, and returns up to `max_pages` pages as citable results: `title`, `url`, and the page's Markdown in `text`. The result also carries `stats` (discovered, matched, skipped, crawled, failed), `failed` (URLs that could not be read, with the reason), the API `message`, and `result_url`, a JSON file with every page in full. Costs 20 credits per started task, however many pages it reads.
+
+The tool waits up to about 45 seconds. If the crawl is still running, it returns `status: "running"` with a `task_id`; call `deepcrawl` again with that `task_id` to collect the pages, which is free and starts no new crawl. Page text is capped at 8,000 characters per page and 80,000 in total; shortened pages have `metadata.truncated: true`, and `result_url` holds the full text.
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `url` | Yes, unless `task_id` is given | - | Site or section to crawl, such as `https://example.com/docs/` |
+| `max_pages` | No | 10 | Most pages to read (1-50), in discovery order after the path rules; the price is the same for any number |
+| `include_paths` | No | - | Up to 20 URL path rules to keep. Without `*` a rule is a path prefix on segment boundaries (`/docs` matches `/docs/api`, not `/docsearch`); with `*` it must match the whole path and `*` also matches `/` |
+| `exclude_paths` | No | - | Up to 20 path rules to skip, same syntax; exclusion wins |
+| `type` | No | sitemap | `sitemap` uses the site's sitemap, or the links on the start page when it has none; `all` uses every link discovered from the start URL |
+| `task_id` | No | - | `task_id` of a crawl that was still running; only checks its status, and the other parameters are ignored |
+
 ### send_feedback
 Report a wrong, empty or incomplete result, an error you could not resolve, documentation that did not match behavior, or a missing capability to the Search1API team. Free; it spends no credits. When the server has a Search1API credential, the report is linked to that account so the team can follow up. Do not include credentials or private data.
 
@@ -246,6 +260,7 @@ Report a wrong, empty or incomplete result, an error you could not resolve, docu
 
 ## Version History
 
+- v0.11.0: New `deepcrawl` tool to read up to 50 pages of one site in a single task (20 credits per task; checking a running task is free)
 - v0.10.0: New `maps` tool for Google Maps place search (3 credits per page of up to 20 places)
 - v0.7.0: New `ask` tool for agentic search. `search` adds the `bingcn`, `yandex`, and `grokipedia` engines and a `page` parameter; `search` and `news` accept `time_range: "week"` and pass `published_date`, GitHub, and Hacker News fields through in result `metadata`
 

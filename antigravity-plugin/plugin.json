@@ -2,7 +2,7 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "search1api",
   "displayName": "Search1API",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Multi-engine web search for agents: Google, Bing, GitHub, Reddit, X, arXiv, WeChat and more. Read full pages, find news, and cite every source.",
   "logo": "assets/logo.svg",
   "suggestedPrompts": [

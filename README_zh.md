@@ -10,7 +10,7 @@
 ## 认证
 
 - 支持 OAuth 的客户端可以直接连接 Remote MCP URL，然后在浏览器中登录并授权。
-- 现有集成可以继续使用从 [Search1API 仪表板](https://dashboard.search1api.com)获取的 API 密钥。
+- 现有集成可以继续使用从 [Search1API 仪表板](https://app.s1.dev)获取的 API 密钥。
 - 所有 MCP 请求（包括工具发现 `initialize`、`tools/list`）都需要凭证。未认证请求会返回 OAuth 挑战，客户端借此触发登录；登录前的能力查看由静态 [server card](https://mcp.search1api.com/.well-known/mcp/server-card.json) 承担。
 
 ## 快速开始（Remote MCP）

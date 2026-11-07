@@ -10,7 +10,7 @@ Der offizielle MCP-Server für [Search1API](https://s1.dev/?utm_source=mcp) – 
 ## Authentifizierung
 
 - OAuth-fähige Clients können sich direkt mit der Remote-MCP-URL verbinden und sich anschließend im Browser anmelden und den Zugriff freigeben.
-- Bestehende Integrationen können weiterhin einen API-Schlüssel aus dem [Search1API-Dashboard](https://dashboard.search1api.com) verwenden.
+- Bestehende Integrationen können weiterhin einen API-Schlüssel aus dem [Search1API-Dashboard](https://app.s1.dev) verwenden.
 - Jede MCP-Anfrage – einschließlich der Tool-Erkennung (`initialize`, `tools/list`) – erfordert Zugangsdaten. Nicht authentifizierte Anfragen lösen die OAuth-Aufforderung aus, über die Clients die Anmeldung starten. Eine Vorabprüfung vor der Verbindung übernimmt stattdessen die statische [Server Card](https://mcp.search1api.com/.well-known/mcp/server-card.json).
 
 ## Schnellstart (Remote-MCP)

@@ -102,50 +102,94 @@ export async function validateCredential(
   return { credential, principal };
 }
 
-// A rejected credential stays rejected for this long before it is checked
-// again. Clients holding a dead token keep retrying (one ping every few
-// seconds, indefinitely), and without the cache each retry costs a /usage
-// call that the API counts as a 401. Matches the gateway's own cache of
-// failed token validation.
+// How long a validation result is reused before the credential is checked
+// again. Every MCP exchange carries the credential, and connected clients keep
+// exchanging even when idle (re-discovery, reconnects, SSE attempts), so
+// checking each one turned the API's /usage into its busiest endpoint: about
+// 33k checks a day against about 1k tool calls. A minute collapses a client's
+// bursts and most of its idle polling.
+//
+// Rejections: clients holding a dead token keep retrying (one ping every few
+// seconds, indefinitely); matches the gateway's own cache of failed tokens.
+// Acceptances: a revoked key, a disabled account or an expired OAuth token
+// can still open a connection for up to this long. Tool calls are unaffected:
+// the API authenticates and bills every one of them itself.
+const ACCEPTED_CREDENTIAL_TTL_MS = 60_000;
 const REJECTED_CREDENTIAL_TTL_MS = 60_000;
-const REJECTED_CREDENTIAL_MAX_ENTRIES = 10_000;
+const CREDENTIAL_CACHE_MAX_ENTRIES = 10_000;
+
+type CachedValidation = {
+  expiresAt: number;
+  principal: string | null;
+};
 
 /**
- * Remember credentials the API rejected so repeat attempts are refused
- * locally. Only rejections are cached: accepted credentials are still checked
- * on every exchange, and validation outages (thrown errors) are not cached.
+ * Reuse validation results for a short time, keyed by the credential's hash.
+ *
+ * Both outcomes are cached, each for its own TTL. Validation outages (thrown
+ * errors) are never cached. Concurrent checks of the same credential share a
+ * single upstream call, since a client's exchanges often arrive together.
  */
-export function cacheRejectedCredentials(
+export function cacheCredentialValidation(
   validator: CredentialValidator,
   {
-    ttlMs = REJECTED_CREDENTIAL_TTL_MS,
-    maxEntries = REJECTED_CREDENTIAL_MAX_ENTRIES,
+    acceptedTtlMs = ACCEPTED_CREDENTIAL_TTL_MS,
+    rejectedTtlMs = REJECTED_CREDENTIAL_TTL_MS,
+    maxEntries = CREDENTIAL_CACHE_MAX_ENTRIES,
     now = Date.now,
-  }: { ttlMs?: number; maxEntries?: number; now?: () => number } = {}
+  }: {
+    acceptedTtlMs?: number;
+    rejectedTtlMs?: number;
+    maxEntries?: number;
+    now?: () => number;
+  } = {}
 ): CredentialValidator {
-  const rejectedUntil = new Map<string, number>();
+  const cache = new Map<string, CachedValidation>();
+  const inFlight = new Map<string, Promise<AuthenticatedCredential | null>>();
+
+  const remember = (key: string, principal: string | null) => {
+    const ttlMs = principal === null ? rejectedTtlMs : acceptedTtlMs;
+    if (ttlMs <= 0) {
+      return;
+    }
+    cache.delete(key);
+    // Map keeps insertion order, so the first key is the oldest entry.
+    if (cache.size >= maxEntries) {
+      const oldest = cache.keys().next().value;
+      if (oldest !== undefined) {
+        cache.delete(oldest);
+      }
+    }
+    cache.set(key, { expiresAt: now() + ttlMs, principal });
+  };
+
   return async (credential) => {
     const key = createHash("sha256").update(credential).digest("hex");
-    const expiresAt = rejectedUntil.get(key);
-    if (expiresAt !== undefined) {
-      if (expiresAt > now()) {
-        return null;
+    const cached = cache.get(key);
+    if (cached !== undefined) {
+      if (cached.expiresAt > now()) {
+        return cached.principal === null
+          ? null
+          : { credential, principal: cached.principal };
       }
-      rejectedUntil.delete(key);
+      cache.delete(key);
     }
 
-    const authenticated = await validator(credential);
-    if (!authenticated) {
-      // Map keeps insertion order, so the first key is the oldest entry.
-      if (rejectedUntil.size >= maxEntries) {
-        const oldest = rejectedUntil.keys().next().value;
-        if (oldest !== undefined) {
-          rejectedUntil.delete(oldest);
-        }
-      }
-      rejectedUntil.set(key, now() + ttlMs);
+    const pending = inFlight.get(key);
+    if (pending) {
+      return pending;
     }
-    return authenticated;
+
+    const check = validator(credential)
+      .then((authenticated) => {
+        remember(key, authenticated?.principal ?? null);
+        return authenticated;
+      })
+      .finally(() => {
+        inFlight.delete(key);
+      });
+    inFlight.set(key, check);
+    return check;
   };
 }
 
@@ -154,8 +198,8 @@ export function cacheRejectedCredentials(
  *
  * A single v2 handler serves the 2026-07-28 protocol and the SDK's default
  * stateless 2025 fallback. Every presented credential is validated per
- * exchange, so no credential or principal is retained in a server-side MCP
- * session. Every exchange requires a credential: the 401 + WWW-Authenticate
+ * exchange (through a one-minute result cache), so no credential or principal
+ * is retained in a server-side MCP session. Every exchange requires a credential: the 401 + WWW-Authenticate
  * challenge on the first unauthenticated request is what spec-compliant
  * clients treat as the trigger to start the OAuth flow, and serving
  * discovery anonymously would leave clients that equate "tools listed" with
@@ -163,7 +207,7 @@ export function cacheRejectedCredentials(
  */
 export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
   const app = express();
-  const credentialValidator = cacheRejectedCredentials(
+  const credentialValidator = cacheCredentialValidation(
     options.validateCredential ?? validateCredential
   );
   const authorizationServer = normalizeAuthorizationServer(

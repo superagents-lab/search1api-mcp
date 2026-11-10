@@ -24,7 +24,7 @@ import { serveStdio } from "@modelcontextprotocol/server/stdio";
 
 process.env.SEARCH1API_KEY = "test-key";
 
-const { cacheRejectedCredentials, createHttpApp } = await import(
+const { cacheCredentialValidation, createHttpApp } = await import(
   "../build/http.js"
 );
 const { createMcpServer, unauthenticatedCredential } = await import(
@@ -267,7 +267,7 @@ test("authenticates every MCP HTTP request before protocol handling", async (con
 test("refuses a rejected credential locally until the cache entry expires", async () => {
   let clock = 0;
   const calls = [];
-  const validator = cacheRejectedCredentials(
+  const validator = cacheCredentialValidation(
     async (credential) => {
       calls.push(credential);
       if (credential === "outage") {
@@ -277,7 +277,7 @@ test("refuses a rejected credential locally until the cache entry expires", asyn
         ? null
         : { credential, principal: `test:${credential}` };
     },
-    { ttlMs: 60_000, maxEntries: 2, now: () => clock }
+    { rejectedTtlMs: 60_000, maxEntries: 2, now: () => clock }
   );
 
   assert.equal(await validator("dead-1"), null);
@@ -289,20 +289,112 @@ test("refuses a rejected credential locally until the cache entry expires", asyn
   assert.equal(await validator("dead-1"), null);
   assert.deepEqual(calls, ["dead-1", "dead-1"]);
 
-  // Accepted credentials and outages are checked every time.
-  await validator("live");
-  await validator("live");
+  // Outages are checked every time.
   await assert.rejects(validator("outage"));
   await assert.rejects(validator("outage"));
-  assert.deepEqual(calls.slice(2), ["live", "live", "outage", "outage"]);
+  assert.deepEqual(calls.slice(2), ["outage", "outage"]);
 
-  // The oldest rejection is evicted once the cache is full.
+  // The oldest entry is evicted once the cache is full.
   await validator("dead-2");
   await validator("dead-3");
   calls.length = 0;
   await validator("dead-1");
   await validator("dead-3");
   assert.deepEqual(calls, ["dead-1"]);
+});
+
+test("reuses an accepted credential for its TTL, then checks it again", async () => {
+  let clock = 0;
+  const calls = [];
+  const validator = cacheCredentialValidation(
+    async (credential) => {
+      calls.push(credential);
+      return { credential, principal: `test:${credential}` };
+    },
+    { acceptedTtlMs: 60_000, now: () => clock }
+  );
+
+  assert.deepEqual(await validator("live"), {
+    credential: "live",
+    principal: "test:live",
+  });
+  clock = 59_999;
+  assert.deepEqual(await validator("live"), {
+    credential: "live",
+    principal: "test:live",
+  });
+  assert.deepEqual(calls, ["live"]);
+
+  clock = 60_000;
+  await validator("live");
+  assert.deepEqual(calls, ["live", "live"]);
+
+  // A different credential is its own entry.
+  await validator("other");
+  assert.deepEqual(calls, ["live", "live", "other"]);
+});
+
+test("re-checks an accepted credential that has since been rejected only after the TTL", async () => {
+  let clock = 0;
+  let revoked = false;
+  const validator = cacheCredentialValidation(
+    async (credential) =>
+      revoked ? null : { credential, principal: `test:${credential}` },
+    { acceptedTtlMs: 60_000, rejectedTtlMs: 60_000, now: () => clock }
+  );
+
+  assert.ok(await validator("key"));
+  revoked = true;
+  clock = 30_000;
+  assert.ok(await validator("key"));
+  clock = 60_000;
+  assert.equal(await validator("key"), null);
+});
+
+test("shares one upstream check between concurrent requests for a credential", async () => {
+  const calls = [];
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const validator = cacheCredentialValidation(async (credential) => {
+    calls.push(credential);
+    await gate;
+    if (credential === "outage") {
+      throw new Error("validation unavailable");
+    }
+    return { credential, principal: `test:${credential}` };
+  });
+
+  const results = Promise.all([validator("live"), validator("live")]);
+  const outages = Promise.allSettled([validator("outage"), validator("outage")]);
+  release();
+  const [first, second] = await results;
+  assert.deepEqual(first, second);
+  assert.deepEqual(
+    (await outages).map((outcome) => outcome.status),
+    ["rejected", "rejected"]
+  );
+  assert.deepEqual(calls, ["live", "outage"]);
+
+  // A shared outage is not cached: the next request checks again.
+  await assert.rejects(validator("outage"));
+  assert.deepEqual(calls, ["live", "outage", "outage"]);
+});
+
+test("validates an accepted credential once across repeated MCP requests", async (context) => {
+  const validatedCredentials = [];
+  const testServer = await startTestHttpServer(async (credential) => {
+    validatedCredentials.push(credential);
+    return { credential, principal: `test:${credential}` };
+  });
+  context.after(() => testServer.close());
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await discoverRequest(testServer.url);
+    assert.equal(response.status, 200);
+  }
+  assert.deepEqual(validatedCredentials, ["test-key"]);
 });
 
 test("does not re-validate a rejected credential on every MCP request", async (context) => {

@@ -153,6 +153,8 @@ Wenn Sie den Server lieber lokal betreiben möchten, verwenden Sie Node.js 20 od
 }
 ```
 
+Um Anfragen über eine andere Search1API-kompatible Adresse zu senden, etwa ein New-API-Gateway mit dem Search1API-Plugin, setzen Sie `SEARCH1API_API_URL` auf diese Basis-URL (zum Beispiel `https://your-gateway.example.com/search1api`) und `SEARCH1API_KEY` auf den dort gültigen Schlüssel.
+
 Bei selbst gehosteten HTTP-Deployments hinter einem Proxy tragen Sie alle internen Hostnamen,
 die den Node.js-Prozess erreichen, in die kommagetrennte Umgebungsvariable `MCP_ALLOWED_HOSTS` ein.
 `mcp.search1api.com` und localhost-Adressen sind standardmäßig erlaubt.

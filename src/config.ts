@@ -36,8 +36,12 @@ if (!API_KEY) {
 }
 
 // API configuration
+// SEARCH1API_API_URL points the tools at another Search1API-compatible base
+// URL, such as a New API gateway with the Search1API plugin
+// (https://your-gateway.example.com/search1api). The remote server reads the
+// same variable.
 export const API_CONFIG = {
-  BASE_URL: 'https://api.search1api.com',
+  BASE_URL: (process.env.SEARCH1API_API_URL?.trim() || 'https://api.search1api.com').replace(/\/+$/, ''),
   DEFAULT_QUERY: 'latest news in the world',
   ENDPOINTS: {
     SEARCH: '/search',

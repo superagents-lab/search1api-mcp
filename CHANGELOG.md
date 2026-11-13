@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.0 - 2026-11-13
+
+- Local stdio mode honors `SEARCH1API_API_URL`, so the server can call Search1API through a gateway or proxy, for example `https://your-gateway.example.com/search1api` on a New API gateway with the Search1API plugin. A trailing slash is ignored; unset, it stays `https://api.search1api.com`.
+- Website links point to s1.dev.
+
 ## 0.11.0 - 2026-11-05
 
 - Add the `deepcrawl` tool to remote HTTP and local stdio: read up to 50 pages of one site in a single task and get them back as citable results (`title`, `url`, Markdown `text`), with `stats`, `failed` URLs, the API `message` and a `result_url` for the full JSON. Accepts `url`, `max_pages` (1-50, default 10), `include_paths` / `exclude_paths` (URL path rules) and `type` (`sitemap` or `all`), and always requests `format: "json"`. The tool waits up to about 45 seconds; a slower crawl returns its `task_id`, and calling `deepcrawl` again with `task_id` collects it. Page text is capped at 8,000 characters per page and 80,000 in total, with truncated pages marked in `metadata`. Costs 20 credits per started task; status checks are free.

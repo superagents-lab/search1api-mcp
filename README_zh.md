@@ -151,6 +151,8 @@ npx skills add superagents-lab/search1api-cli
 }
 ```
 
+如果要通过其他兼容 Search1API 的地址发送请求，例如安装了 Search1API 插件的 New API 网关，把 `SEARCH1API_API_URL` 设为该地址（例如 `https://your-gateway.example.com/search1api`），`SEARCH1API_KEY` 填该地址接受的密钥。
+
 自行部署 HTTP 服务并使用反向代理时，请通过逗号分隔的
 `MCP_ALLOWED_HOSTS` 环境变量添加会到达 Node.js 进程的内部主机名。
 默认允许 `mcp.search1api.com` 和 localhost 地址。会发送 `Origin` 请求头的

@@ -231,6 +231,15 @@ npx skills add superagents-lab/search1api-cli
 | `page` | 否 | 1 | Google Maps 页码 1-6，每页单独调用 |
 | `max_results` | 否 | 20 | 从该页返回的地点数（1-20）；返回更少不会降低价格 |
 
+### query_dataset
+从整理并交叉核实过的事实数据集里回答问题，而不是搜索公开网页。第一个数据集是 `gta6`，覆盖 GTA 6 玩法。每条事实都是可引用的结果：`title` 是事实本身，`url` 是最好的来源，`metadata` 里有相关度、可信度、几个独立来源印证、来源之间是否有分歧（附对立说法）和全部来源链接。`found` 为 false 表示数据集里没有答案。只有 `found` 为 true 时扣 1 积分。
+
+| 参数 | 必填 | 默认值 | 说明 |
+|------|------|--------|------|
+| `dataset` | 是 | - | 要查询的数据集：`gta6` |
+| `query` | 是 | - | 自然语言问题，最多 500 字符；非英文问题会先翻译再匹配 |
+| `max_results` | 否 | 5 | 返回的事实条数（1-10） |
+
 ### deepcrawl
 一次任务读取同一网站的多个页面，例如整个文档栏目。通过站点地图找到网站的 URL，保留符合路径规则的部分，最多返回 `max_pages` 个页面，作为可引用结果：`title`、`url`，`text` 为页面的 Markdown 内容。结果还包含 `stats`（发现、匹配、因上限略过、成功抓取、失败的数量）、`failed`（无法读取的 URL 及原因）、API 返回的 `message`，以及 `result_url`（包含全部页面完整内容的 JSON 文件）。每个启动的任务消耗 20 积分，不论读取多少页面。
 
@@ -259,6 +268,7 @@ npx skills add superagents-lab/search1api-cli
 ## 版本历史
 
 - v0.11.0: 新增 `deepcrawl` 工具，一次任务读取同一网站最多 50 个页面（每个任务 20 积分，查询运行中的任务免费）
+- v0.13.0: 新增 `query_dataset` 工具，从核实过的事实数据集回答问题，首个数据集为 GTA 6 玩法（有答案时每次 1 积分）
 - v0.10.0: 新增 `maps` 工具，搜索 Google Maps 地点（每页最多 20 个地点，3 积分）
 - v0.7.0: 新增智能搜索工具 `ask`。`search` 新增 `bingcn`、`yandex`、`grokipedia` 引擎和 `page` 参数；`search` 与 `news` 支持 `time_range: "week"`，并在结果 `metadata` 中透传 `published_date` 以及 GitHub、Hacker News 字段
 

@@ -235,6 +235,15 @@ Findet lokale Unternehmen und Orte auf Google Maps. Liefert pro Aufruf eine Seit
 | `page` | Nein | 1 | Google-Maps-Seite 1-6; jede Seite ist ein eigener Aufruf |
 | `max_results` | Nein | 20 | Anzahl der Orte aus der Seite (1-20); weniger Orte senken den Preis nicht |
 
+### query_dataset
+Beantwortet eine Frage aus einem kuratierten Datensatz von Fakten, die aus vielen Quellen gesammelt und gegeneinander geprüft wurden, statt das offene Web zu durchsuchen. Der erste Datensatz ist `gta6` mit Gameplay-Wissen zu GTA 6 (Grand Theft Auto VI). Jeder Fakt ist ein zitierbares Ergebnis: `title` ist der Fakt, `url` seine beste Quelle, und `metadata` enthält Relevanz, Konfidenz, die Zahl unabhängiger Quellen, ob Quellen widersprechen (mit den abweichenden Angaben) und alle Quellenlinks. Ist `found` false, hat der Datensatz keine Antwort. Kostet 1 Credit, nur wenn `found` true ist.
+
+| Parameter | Erforderlich | Standard | Beschreibung |
+|-----------|--------------|----------|--------------|
+| `dataset` | Ja | - | Abzufragender Datensatz: `gta6` |
+| `query` | Ja | - | Die Frage in natürlicher Sprache, bis 500 Zeichen; andere Sprachen werden vor dem Abgleich übersetzt |
+| `max_results` | Nein | 5 | Anzahl der Fakten (1-10) |
+
 ### deepcrawl
 Liest viele Seiten einer Website in einem einzigen Task, etwa einen Dokumentationsbereich. Findet die URLs der Website über ihre Sitemap, behält die, die zu den Pfadregeln passen, und liefert bis zu `max_pages` Seiten als zitierfähige Ergebnisse: `title`, `url` und den Markdown-Inhalt der Seite in `text`. Das Ergebnis enthält außerdem `stats` (gefunden, passend, durch das Limit ausgelassen, gecrawlt, fehlgeschlagen), `failed` (URLs, die nicht gelesen werden konnten, mit Grund), die `message` der API und `result_url`, eine JSON-Datei mit allen Seiten in voller Länge. Kostet 20 Credits pro gestartetem Task, unabhängig von der Anzahl der Seiten.
 
@@ -263,6 +272,7 @@ Meldet dem Search1API-Team ein falsches, leeres oder unvollständiges Ergebnis, 
 ## Versionsverlauf
 
 - v0.11.0: Neues Tool `deepcrawl`, das bis zu 50 Seiten einer Website in einem Task liest (20 Credits pro Task; die Abfrage eines laufenden Tasks ist kostenlos)
+- v0.13.0: Neues Tool `query_dataset`, das aus geprüften Faktendatensätzen antwortet, zuerst zum Gameplay von GTA 6 (1 Credit pro beantworteter Frage)
 - v0.10.0: Neues Tool `maps` für die Ortssuche auf Google Maps (3 Credits pro Seite mit bis zu 20 Orten)
 - v0.7.0: Neues Tool `ask` für agentische Suche. `search` ergänzt die Suchmaschinen `bingcn`, `yandex` und `grokipedia` sowie einen Parameter `page`; `search` und `news` akzeptieren `time_range: "week"` und reichen `published_date` sowie GitHub- und Hacker-News-Felder in den Ergebnis-`metadata` durch
 

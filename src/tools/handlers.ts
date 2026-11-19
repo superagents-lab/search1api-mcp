@@ -12,6 +12,7 @@ import { handleTrending } from "./trending.js";
 import { handleRenderResults } from "./render-results.js";
 import { handleAsk } from "./ask.js";
 import { handleMaps } from "./maps.js";
+import { handleQueryDataset } from "./dataset.js";
 import { handleDeepcrawl } from "./deepcrawl.js";
 import {
   SEARCH_TOOL,
@@ -21,6 +22,7 @@ import {
   TRENDING_TOOL,
   ASK_TOOL,
   MAPS_TOOL,
+  QUERY_DATASET_TOOL,
   DEEPCRAWL_TOOL,
   RENDER_RESULTS_TOOL,
 } from "./index.js";
@@ -60,6 +62,8 @@ export async function handleToolCall(
 
     case MAPS_TOOL.name:
       return await handleMaps(args, apiKey);
+    case QUERY_DATASET_TOOL.name:
+      return await handleQueryDataset(args, apiKey);
 
     case DEEPCRAWL_TOOL.name:
       return await handleDeepcrawl(args, apiKey);

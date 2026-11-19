@@ -456,6 +456,58 @@ export const MAPS_TOOL: OAuthTool = {
   },
 };
 
+// Verified dataset tool definition
+export const QUERY_DATASET_TOOL: OAuthTool = {
+  name: "query_dataset",
+  title: "Answer from a verified fact dataset",
+  description:
+    "Answer a question from a curated dataset of facts that Search1API has collected from many sources and cross-checked, instead of searching the open web. Use it when the question falls in a listed dataset: gta6 covers GTA 6 (Grand Theft Auto VI) gameplay, such as missions, vehicles, weapons, money, collectibles, properties, controls, settings and performance, and bugs and fixes. Each result is one short fact with its relevance, a confidence score, how many independent sources state it, whether sources disagree (with the competing claims), and source links to cite. When found is false the dataset has no answer: say so or use search, and do not present the closest facts as the answer. Costs 1 credit only when found is true.",
+  ...AUTHENTICATED_READ_ONLY_WEB,
+  inputSchema: {
+    type: "object",
+    properties: {
+      dataset: {
+        type: "string",
+        enum: ["gta6"],
+        description: "Dataset to query: gta6 for GTA 6 gameplay",
+      },
+      query: {
+        type: "string",
+        maxLength: 500,
+        description: "The player's question in natural language, with any platform or version in the question itself; non-English questions are translated before matching",
+      },
+      max_results: {
+        type: "integer",
+        minimum: 1,
+        maximum: 10,
+        description: "Maximum facts to return",
+        default: 5,
+      },
+    },
+    required: ["dataset", "query"],
+  },
+  outputSchema: {
+    type: "object",
+    properties: {
+      dataset: { type: "string" },
+      found: {
+        type: "boolean",
+        description: "Whether the best fact answers the question; when false the results are only the closest facts",
+      },
+      query_en: {
+        type: "string",
+        description: "English translation used for matching, for non-English questions",
+      },
+      results: {
+        type: "array",
+        description: "Facts ordered by relevance. title is the fact, url its best source, and metadata holds relevance, confidence, corroborated_by, contested, conflicting_claims, the answered question, all sources and dataset attributes",
+        items: CITABLE_RESULT_SCHEMA,
+      },
+    },
+    required: ["dataset", "found", "results"],
+  },
+};
+
 const DEEPCRAWL_PATH_RULES = {
   type: "array",
   maxItems: 20,
@@ -596,6 +648,7 @@ export const ALL_TOOLS = [
   TRENDING_TOOL,
   ASK_TOOL,
   MAPS_TOOL,
+  QUERY_DATASET_TOOL,
   DEEPCRAWL_TOOL,
   RENDER_RESULTS_TOOL,
 ];

@@ -51,6 +51,7 @@ export const API_CONFIG = {
     TRENDING: '/trending',
     ASK: '/ask',
     MAPS: '/maps',
+    DATASET: '/dataset',
     DEEPCRAWL: '/deepcrawl',
     DEEPCRAWL_STATUS: '/deepcrawl/status'
   }

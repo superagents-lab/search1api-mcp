@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.0 - 2026-11-19
+
+- Add the `query_dataset` tool to remote HTTP and local stdio: answer a question from a curated, cross-checked fact dataset through `POST /dataset`. The first dataset is `gta6` (GTA 6 gameplay). Each fact is a citable result (`title` = fact, `url` = best source) with relevance, confidence, independent-source count, contested flag with the competing claims, all sources and dataset attributes in `metadata`; `found` says whether the dataset answers the question. Accepts `dataset`, `query` (up to 500 characters; non-English questions are translated before matching) and `max_results` (1-10, default 5). Costs 1 credit only when `found` is true.
+
 ## 0.12.0 - 2026-11-13
 
 - Local stdio mode honors `SEARCH1API_API_URL`, so the server can call Search1API through a gateway or proxy, for example `https://your-gateway.example.com/search1api` on a New API gateway with the Search1API plugin. A trailing slash is ignored; unset, it stays `https://api.search1api.com`.

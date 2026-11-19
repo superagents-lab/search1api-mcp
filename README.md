@@ -235,6 +235,15 @@ Find local businesses and places on Google Maps. Returns one page of up to 20 pl
 | `page` | No | 1 | Google Maps page, 1-6; each page is a separate call |
 | `max_results` | No | 20 | Places to return from the page (1-20); fewer places do not lower the price |
 
+### query_dataset
+Answer a question from a curated dataset of facts collected from many sources and cross-checked, instead of searching the open web. The first dataset is `gta6`, covering GTA 6 (Grand Theft Auto VI) gameplay. Each fact is a citable result: `title` is the fact, `url` its best source, and `metadata` holds its relevance, confidence, how many independent sources state it, whether sources disagree (with the competing claims) and all source links. When `found` is false the dataset has no answer. Costs 1 credit only when `found` is true.
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `dataset` | Yes | - | Dataset to query: `gta6` |
+| `query` | Yes | - | The question in natural language, up to 500 characters; other languages are translated before matching |
+| `max_results` | No | 5 | Facts to return (1-10) |
+
 ### deepcrawl
 Read many pages of one site in a single task, such as a documentation section. Finds the site's URLs through its sitemap, keeps those that match the path rules, and returns up to `max_pages` pages as citable results: `title`, `url`, and the page's Markdown in `text`. The result also carries `stats` (discovered, matched, skipped, crawled, failed), `failed` (URLs that could not be read, with the reason), the API `message`, and `result_url`, a JSON file with every page in full. Costs 20 credits per started task, however many pages it reads.
 
@@ -263,6 +272,7 @@ Report a wrong, empty or incomplete result, an error you could not resolve, docu
 ## Version History
 
 - v0.11.0: New `deepcrawl` tool to read up to 50 pages of one site in a single task (20 credits per task; checking a running task is free)
+- v0.13.0: New `query_dataset` tool that answers from verified fact datasets, starting with GTA 6 gameplay (1 credit per answered question)
 - v0.10.0: New `maps` tool for Google Maps place search (3 credits per page of up to 20 places)
 - v0.7.0: New `ask` tool for agentic search. `search` adds the `bingcn`, `yandex`, and `grokipedia` engines and a `page` parameter; `search` and `news` accept `time_range: "week"` and pass `published_date`, GitHub, and Hacker News fields through in result `metadata`
 

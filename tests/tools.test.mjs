@@ -51,6 +51,7 @@ const EXPECTED_TOOLS = [
   "trending",
   "ask",
   "maps",
+  "query_dataset",
   "deepcrawl",
   "render_results",
 ];
@@ -1348,6 +1349,84 @@ test("maps rejects invalid arguments before making an API request", async () => 
   ]) {
     await assert.rejects(
       handleToolCall("maps", args),
+      (error) => error instanceof ProtocolError && error.code === INVALID_PARAMS
+    );
+  }
+});
+
+test("query_dataset forwards the question and returns facts as citable results", async (context) => {
+  const calls = stubFetch(context, {
+    dataset: "gta6",
+    query: "怎么打 911",
+    query_en: "how to call 911",
+    found: true,
+    results: [
+      {
+        id: "b06:f38",
+        fact: "Vela Rota Drive Garage costs $30,000.",
+        question: "How much do garages cost in GTA 6?",
+        relevance: 0.94,
+        confidence: 0.365,
+        corroborated_by: 1,
+        contested: true,
+        conflicting_claims: ["Vela Rota Drive Garage costs $24,000."],
+        sources: [{ source: "guide", site: "ign.com", url: "https://www.ign.com/wikis/gta-6/garages" }],
+        attributes: { type: "property", spoiler: false },
+        updated_at: "2026-11-19T13:49:31Z",
+      },
+    ],
+  });
+
+  const result = await handleToolCall("query_dataset", {
+    dataset: "gta6",
+    query: "怎么打 911",
+    max_results: 3,
+  });
+
+  assert.equal(calls[0].url, "https://api.search1api.com/dataset");
+  assert.deepEqual(calls[0].body, { dataset: "gta6", query: "怎么打 911", max_results: 3 });
+  assert.equal(result.isError, undefined);
+  assert.deepEqual(result.structuredContent, {
+    dataset: "gta6",
+    found: true,
+    query_en: "how to call 911",
+    results: [
+      {
+        id: "b06:f38",
+        title: "Vela Rota Drive Garage costs $30,000.",
+        url: "https://www.ign.com/wikis/gta-6/garages",
+        text: "Vela Rota Drive Garage costs $30,000. (contested; other sources say: Vela Rota Drive Garage costs $24,000.)",
+        metadata: {
+          question: "How much do garages cost in GTA 6?",
+          relevance: 0.94,
+          confidence: 0.365,
+          corroborated_by: 1,
+          contested: true,
+          conflicting_claims: ["Vela Rota Drive Garage costs $24,000."],
+          sources: [{ source: "guide", site: "ign.com", url: "https://www.ign.com/wikis/gta-6/garages" }],
+          attributes: { type: "property", spoiler: false },
+          updated_at: "2026-11-19T13:49:31Z",
+        },
+      },
+    ],
+  });
+});
+
+test("query_dataset passes found=false through so agents do not treat near misses as answers", async (context) => {
+  stubFetch(context, { dataset: "gta6", query: "stock market", found: false, results: [] });
+  const result = await handleToolCall("query_dataset", { dataset: "gta6", query: "stock market" });
+  assert.deepEqual(result.structuredContent, { dataset: "gta6", found: false, results: [] });
+});
+
+test("query_dataset rejects invalid arguments before making an API request", async () => {
+  for (const args of [
+    { query: "money" },
+    { dataset: "eldenring", query: "money" },
+    { dataset: "gta6", query: "  " },
+    { dataset: "gta6", query: "money", max_results: 11 },
+  ]) {
+    await assert.rejects(
+      handleToolCall("query_dataset", args),
       (error) => error instanceof ProtocolError && error.code === INVALID_PARAMS
     );
   }

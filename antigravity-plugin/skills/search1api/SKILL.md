@@ -21,6 +21,7 @@ an earlier server version. The host may prefix their names
 | Find the best sources when you don't know where to look | `ask` |
 | Find recent news or coverage | `news` |
 | Find businesses or places on a map, with addresses, ratings, and hours | `maps` |
+| Answer a GTA 6 gameplay question from verified, source-linked facts | `query_dataset` |
 | Read a page the user shared, or the full page behind a result | `crawl` |
 | Read many pages of one site, such as a documentation section | `deepcrawl` |
 | Explore the links on a site or page | `sitemap` |
@@ -47,6 +48,11 @@ can register at https://s1.dev.
   two pages, `crawl` them instead.
 - The user asks where something is, wants nearby options, or needs a list of
   local businesses → `maps`; `crawl` a place's website for more detail.
+- The question falls in a verified dataset (`gta6`: GTA 6 gameplay, such as
+  missions, vehicles, money, collectibles, settings, bugs and fixes) →
+  `query_dataset` first. Cite the facts' sources and mention when a fact is
+  contested. If `found` is false, say the dataset has no answer and use
+  `search` instead.
 
 ## Choose engines and compare sources
 
@@ -109,6 +115,7 @@ For `trending`: github, hackernews.
 Each `search` or `news` call costs 1 credit, plus 1 per page when
 `crawl_results` is above 0. Each `crawl` costs 1 credit. Each `ask` costs 5
 credits. Each `maps` call costs 3 credits per page of up to 20 places. Each
+`query_dataset` call costs 1 credit when `found` is true and nothing otherwise. Each
 `deepcrawl` task costs 20 credits however many pages it reads; checking a
 running task with `task_id` is free. Prefer a few targeted
 `crawl` calls on the best results over a large `crawl_results` value.

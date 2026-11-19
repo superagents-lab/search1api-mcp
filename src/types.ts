@@ -502,3 +502,57 @@ export function isValidDeepcrawlArgs(args: unknown): args is DeepcrawlArgs {
 
   return true;
 }
+
+export interface DatasetFactSource {
+  source: string;
+  site: string | null;
+  url: string;
+}
+
+export interface DatasetFact {
+  id: string;
+  fact: string;
+  question: string;
+  relevance: number;
+  confidence: number;
+  corroborated_by: number;
+  contested: boolean;
+  conflicting_claims: string[];
+  sources: DatasetFactSource[];
+  attributes: Record<string, unknown>;
+  updated_at: string;
+}
+
+export interface DatasetQueryResponse {
+  dataset: string;
+  query: string;
+  query_en?: string;
+  found: boolean;
+  results: DatasetFact[];
+}
+
+/** Datasets POST /dataset serves; extend together with the tool's enum. */
+export const DATASETS = ['gta6'] as const;
+
+export interface DatasetQueryArgs {
+  dataset: (typeof DATASETS)[number];
+  query: string;
+  max_results?: number;
+}
+
+export function isValidDatasetQueryArgs(args: unknown): args is DatasetQueryArgs {
+  if (typeof args !== 'object' || args === null) {
+    return false;
+  }
+  const { dataset, query, max_results } = args as DatasetQueryArgs;
+  if (typeof dataset !== 'string' || !(DATASETS as readonly string[]).includes(dataset)) {
+    return false;
+  }
+  if (typeof query !== 'string' || query.trim().length === 0 || query.length > 500) {
+    return false;
+  }
+  if (max_results !== undefined && (!Number.isInteger(max_results) || max_results < 1 || max_results > 10)) {
+    return false;
+  }
+  return true;
+}

@@ -73,7 +73,10 @@ export async function validateCredential(
   credential: string
 ): Promise<AuthenticatedCredential | null> {
   const response = await fetch(`${API_BASE_URL}/usage`, {
-    headers: { Authorization: `Bearer ${credential}` },
+    headers: {
+      Authorization: `Bearer ${credential}`,
+      "X-Search1API-Client": `mcp-remote/${PACKAGE_VERSION}`,
+    },
   });
 
   if (response.status === 401 || response.status === 403) {
@@ -223,7 +226,11 @@ export function createHttpApp(options: HttpAppOptions = {}): Search1ApiHttpApp {
   const validateOrigin = originValidation(allowedOriginHostnames);
 
   const mcpHandler = createMcpHandler(
-    ({ authInfo }) => createMcpServer(toolCredential(authInfo)),
+    ({ authInfo, requestInfo }) =>
+      createMcpServer(toolCredential(authInfo), {
+        transport: "mcp-remote",
+        userAgent: requestInfo?.headers.get("user-agent") ?? undefined,
+      }),
     {
       legacy: "stateless",
       onerror: (error) => log("MCP handler error:", error),

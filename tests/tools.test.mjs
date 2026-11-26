@@ -1859,3 +1859,58 @@ test("news flattens API metadata into MCP metadata without losing zeros or dates
   });
   assert.deepEqual(result.structuredContent.results[1].metadata, { snippet: "No metadata" });
 });
+
+// The gateway records which transport and MCP client each call came through
+// (analytics only), from these two headers.
+async function apiHeadersOfSearch(context, connect) {
+  const originalFetch = globalThis.fetch;
+  const sent = [];
+  context.mock.method(globalThis, "fetch", async (url, init) => {
+    if (String(url).startsWith("https://api.search1api.com/search")) {
+      sent.push(new Headers(init.headers));
+      return Response.json({ results: [] });
+    }
+    return originalFetch(url, init);
+  });
+  const client = await connect();
+  await client.callTool({ name: "search", arguments: { query: "MCP", max_results: 1 } });
+  return sent;
+}
+
+test("names the local transport and the MCP client to the API (stdio)", async (context) => {
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const serverHandle = serveStdio(() => createMcpServer("test-key"), { transport: serverTransport });
+  const client = new Client({ name: "claude-code", version: "2.1.0" });
+  context.after(async () => {
+    await client.close();
+    await serverHandle.close();
+  });
+  const [headers] = await apiHeadersOfSearch(context, async () => {
+    await client.connect(clientTransport);
+    return client;
+  });
+  assert.match(headers.get("x-search1api-client"), /^mcp-local\/\d+\.\d+\.\d+/);
+  assert.equal(headers.get("x-search1api-client-app"), "claude-code");
+});
+
+for (const mode of [{ pin: "2026-07-28" }, "legacy"]) {
+  test(`names the remote transport and the MCP client to the API (${JSON.stringify(mode)})`, async (context) => {
+    const testServer = await startTestHttpServer();
+    const client = new Client({ name: "claude-ai", version: "0.1.0" }, { versionNegotiation: { mode } });
+    context.after(async () => {
+      await client.close();
+      await testServer.close();
+    });
+    const [headers] = await apiHeadersOfSearch(context, async () => {
+      await client.connect(createAuthenticatedTransport(testServer.url));
+      return client;
+    });
+    assert.match(headers.get("x-search1api-client"), /^mcp-remote\/\d+\.\d+\.\d+/);
+    // Stateless legacy calls carry no clientInfo; the MCP request's
+    // User-Agent stands in for it.
+    assert.ok(headers.get("x-search1api-client-app"));
+    if (mode !== "legacy") {
+      assert.equal(headers.get("x-search1api-client-app"), "claude-ai");
+    }
+  });
+}

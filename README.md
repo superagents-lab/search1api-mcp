@@ -259,13 +259,18 @@ The tool waits up to about 45 seconds. If the crawl is still running, it returns
 | `task_id` | No | - | `task_id` of a crawl that was still running; only checks its status, and the other parameters are ignored |
 
 ### send_feedback
-Report a wrong, empty or incomplete result, an error you could not resolve, documentation that did not match behavior, or a missing capability to the Search1API team. Free; it spends no credits. When the server has a Search1API credential, the report is linked to that account so the team can follow up. Do not include credentials or private data.
+Report a wrong, empty or incomplete result, an error you could not resolve, documentation that did not match behavior, or a missing capability to the Search1API team. Free; it spends no credits. When the server has a Search1API credential, the report is linked to that account, with the account's email, so the team can follow up. Do not include credentials or private data.
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `message` | Yes | What went wrong or what was missing, up to 4000 characters |
+| `outcome` | Yes | How the task ended: `blocked` (could not finish), `worked_around` (finished another way), `friction` (finished after retries or guessing) |
 | `intent` | No | What you were trying to accomplish |
+| `expected` | No | What you expected to happen |
+| `actual` | No | What happened instead: the calls made, in order, and the error text |
+| `tool` | No | Name of the tool that had the problem |
 | `category` | No | bug, feature_request, docs, other |
+| `suggestion` | No | What would have helped |
 | `request_id` | No | Request id of the call that had the problem |
 | `model` | No | Your model name |
 

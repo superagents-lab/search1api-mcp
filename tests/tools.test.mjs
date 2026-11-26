@@ -738,7 +738,11 @@ async function sendFeedbackThrough(context, credential) {
   context.mock.method(globalThis, "fetch", async (url, init) => {
     if (String(url) === "https://api.search1api.com/feedback/identity") {
       sent.push({ url: String(url), authorization: init.headers.Authorization });
-      return Response.json({ account: "user_123", signature: "a".repeat(64) });
+      return Response.json({
+        account: "user_123",
+        signature: "a".repeat(64),
+        email: "user@example.com",
+      });
     }
     sent.push({ url: String(url), body: JSON.parse(init.body) });
     return Response.json({ id: "fb_1", status: "new" }, { status: 201 });
@@ -759,7 +763,11 @@ async function sendFeedbackThrough(context, credential) {
   await client.connect(clientTransport);
   const result = await client.callTool({
     name: "send_feedback",
-    arguments: { message: "bingcn returned no results", category: "bug" },
+    arguments: {
+      message: "bingcn returned no results",
+      category: "bug",
+      outcome: "worked_around",
+    },
   });
   assert.equal(result.isError, undefined, JSON.stringify(result));
   return sent;
@@ -776,10 +784,13 @@ test("sends agent feedback under the signed-in Search1API account", async (conte
   assert.deepEqual(sent[1].body, {
     message: "bingcn returned no results",
     category: "bug",
+    outcome: "worked_around",
     agent: { name: "search1api-feedback-test 1.0.0" },
     source: "mcp",
     account: "user_123",
     account_signature: "a".repeat(64),
+    email: "user@example.com",
+    version: packageJson.version,
   });
 });
 

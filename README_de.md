@@ -259,13 +259,18 @@ Das Tool wartet bis zu etwa 45 Sekunden. Läuft der Crawl dann noch, liefert es 
 | `task_id` | Nein | - | `task_id` eines noch laufenden Crawls; fragt nur dessen Status ab, die übrigen Parameter werden ignoriert |
 
 ### send_feedback
-Meldet dem Search1API-Team ein falsches, leeres oder unvollständiges Ergebnis, einen Fehler, den Sie nicht beheben konnten, eine Dokumentation, die nicht zum Verhalten passte, oder eine fehlende Funktion. Kostenlos; es werden keine Credits verbraucht. Verfügt der Server über Search1API-Zugangsdaten, wird die Meldung mit diesem Konto verknüpft, damit das Team nachfassen kann. Geben Sie keine Zugangsdaten oder privaten Daten an.
+Meldet dem Search1API-Team ein falsches, leeres oder unvollständiges Ergebnis, einen Fehler, den Sie nicht beheben konnten, eine Dokumentation, die nicht zum Verhalten passte, oder eine fehlende Funktion. Kostenlos; es werden keine Credits verbraucht. Verfügt der Server über Search1API-Zugangsdaten, wird die Meldung mit diesem Konto und dessen E-Mail-Adresse verknüpft, damit das Team nachfassen kann. Geben Sie keine Zugangsdaten oder privaten Daten an.
 
 | Parameter | Erforderlich | Beschreibung |
 |-----------|----------|-------------|
 | `message` | Ja | Was schiefgelaufen ist oder gefehlt hat, bis zu 4000 Zeichen |
+| `outcome` | Ja | Wie die Aufgabe endete: `blocked` (nicht abgeschlossen), `worked_around` (auf anderem Weg abgeschlossen), `friction` (erst nach Wiederholungen oder Raten abgeschlossen) |
 | `intent` | Nein | Was Sie erreichen wollten |
+| `expected` | Nein | Was Sie erwartet haben |
+| `actual` | Nein | Was stattdessen passiert ist: die Aufrufe in Reihenfolge und der Fehlertext |
+| `tool` | Nein | Name des Tools, bei dem das Problem auftrat |
 | `category` | Nein | bug, feature_request, docs, other |
+| `suggestion` | Nein | Was geholfen hätte |
 | `request_id` | Nein | Request-ID des Aufrufs, bei dem das Problem auftrat |
 | `model` | Nein | Name Ihres Modells |
 

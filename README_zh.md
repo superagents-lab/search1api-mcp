@@ -255,13 +255,18 @@ npx skills add superagents-lab/search1api-cli
 | `task_id` | 否 | - | 仍在运行的抓取任务的 `task_id`；只查询状态，其他参数会被忽略 |
 
 ### send_feedback
-向 Search1API 团队反馈问题：结果错误、为空或不完整，无法解决的报错，文档与实际行为不符，或缺少的能力。免费，不消耗积分。服务端有 Search1API 凭证时，反馈会关联到对应账号，方便团队跟进。请勿包含凭证或隐私数据。
+向 Search1API 团队反馈问题：结果错误、为空或不完整，无法解决的报错，文档与实际行为不符，或缺少的能力。免费，不消耗积分。服务端有 Search1API 凭证时，反馈会关联到对应账号并附上账号邮箱，方便团队跟进。请勿包含凭证或隐私数据。
 
 | 参数 | 必需 | 说明 |
 |------|------|------|
 | `message` | 是 | 出了什么问题或缺少什么，最多 4000 字符 |
+| `outcome` | 是 | 任务结果：`blocked`（没能完成）、`worked_around`（换了办法完成）、`friction`（重试或猜测后才完成） |
 | `intent` | 否 | 当时想完成的任务 |
+| `expected` | 否 | 预期的结果 |
+| `actual` | 否 | 实际发生了什么：按顺序列出调用和报错文本 |
+| `tool` | 否 | 出问题的工具名 |
 | `category` | 否 | bug、feature_request、docs、other |
+| `suggestion` | 否 | 怎样会更有帮助 |
 | `request_id` | 否 | 出问题那次调用的请求 ID |
 | `model` | 否 | 你的模型名称 |
 

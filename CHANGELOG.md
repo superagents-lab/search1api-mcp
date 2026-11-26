@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.0 - 2026-11-26
+
+- `send_feedback` reports carry the account's email next to the signed account, read from the gateway's `GET /feedback/identity`, so the Search1API team can reply. Without a credential, or when the gateway has no email for the account, the report is sent as before.
+- Updates the Agentback SDK to 0.7.0. `send_feedback` now requires `outcome` (`blocked`, `worked_around` or `friction`: how the task ended) and accepts `expected`, `actual`, `tool` and `suggestion`; reports include the server's version.
+
 ## 0.14.0 - 2026-11-26
 
 - Requests to Search1API name the transport and the MCP client in `X-Search1API-Client` (`mcp-remote/<version>` or `mcp-local/<version>`) and `X-Search1API-Client-App` (the client's `clientInfo.name`, or the MCP request's User-Agent when a stateless legacy call has none), so API analytics can tell remote and local MCP traffic, and Claude, Cursor and other clients, apart. Analytics only; it does not affect billing or auth.

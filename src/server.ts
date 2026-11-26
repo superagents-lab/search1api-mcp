@@ -21,6 +21,7 @@ import {
   readSearchUi,
 } from "./ui.js";
 import { formatError, log } from "./utils.js";
+import { type McpTransport, withClientChannel } from "./client-channel.js";
 import { PACKAGE_VERSION } from "./version.js";
 import { SERVER_DESCRIPTION, SERVER_ICONS } from "./branding.js";
 
@@ -51,7 +52,10 @@ export function unauthenticatedCredential(message: string): CredentialProvider {
  * All transports expose the same data tools and optional rendering tool.
  */
 export function createMcpServer(
-  credential?: CredentialProvider
+  credential?: CredentialProvider,
+  channel: { transport: McpTransport; userAgent?: string } = {
+    transport: "mcp-local",
+  }
 ): McpServer {
   log("Creating Search1API MCP server");
 
@@ -92,7 +96,15 @@ export function createMcpServer(
           const bearerCredential =
             typeof credential === "function" ? credential() : credential;
           log(`Tool call received: ${tool.name}`);
-          return await handleToolCall(tool.name, args, bearerCredential);
+          // clientInfo is per request on the 2026 era and per connection on
+          // stdio; a stateless legacy HTTP call has neither, so the MCP
+          // request's User-Agent stands in.
+          const app =
+            server.server.getClientVersion()?.name ?? channel.userAgent;
+          return await withClientChannel(
+            { transport: channel.transport, app },
+            () => handleToolCall(tool.name, args, bearerCredential)
+          );
         } catch (error) {
           throw normalizeProtocolError(`handling tool call ${tool.name}`, error);
         }

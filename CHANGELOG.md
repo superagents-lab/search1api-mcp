@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.0 - 2026-11-26
+
+- Requests to Search1API name the transport and the MCP client in `X-Search1API-Client` (`mcp-remote/<version>` or `mcp-local/<version>`) and `X-Search1API-Client-App` (the client's `clientInfo.name`, or the MCP request's User-Agent when a stateless legacy call has none), so API analytics can tell remote and local MCP traffic, and Claude, Cursor and other clients, apart. Analytics only; it does not affect billing or auth.
+
 ## 0.13.0 - 2026-11-19
 
 - Add the `query_dataset` tool to remote HTTP and local stdio: answer a question from a curated, cross-checked fact dataset through `POST /dataset`. The first dataset is `gta6` (GTA 6 gameplay). Each fact is a citable result (`title` = fact, `url` = best source) with relevance, confidence, independent-source count, contested flag with the competing claims, all sources and dataset attributes in `metadata`; `found` says whether the dataset answers the question. Accepts `dataset`, `query` (up to 500 characters; non-English questions are translated before matching) and `max_results` (1-10, default 5). Costs 1 credit only when `found` is true.

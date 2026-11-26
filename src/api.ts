@@ -1,5 +1,6 @@
 import { API_KEY, API_CONFIG } from './config.js';
 import { log } from './utils.js';
+import { clientChannelHeaders } from './client-channel.js';
 
 /**
  * A non-2xx answer from the API. `status` and `body` let a caller tell, for
@@ -63,6 +64,7 @@ async function request<T>(
       method,
       headers: {
         'Authorization': `Bearer ${key}`,
+        ...clientChannelHeaders(),
         ...(method === 'POST' && { 'Content-Type': 'application/json' }),
       },
       ...(method === 'POST' && { body: JSON.stringify(data) }),

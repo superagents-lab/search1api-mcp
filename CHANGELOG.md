@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.14.0 - 2026-11-26
 
 - Requests to Search1API name the transport and the MCP client in `X-Search1API-Client` (`mcp-remote/<version>` or `mcp-local/<version>`) and `X-Search1API-Client-App` (the client's `clientInfo.name`, or the MCP request's User-Agent when a stateless legacy call has none), so API analytics can tell remote and local MCP traffic, and Claude, Cursor and other clients, apart. Analytics only; it does not affect billing or auth.
 
